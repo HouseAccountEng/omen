@@ -1,4 +1,8 @@
+require 'active_job/performs'
+require 'anthropic'
+
 require 'omen/config'
+require 'omen/requirements'
 require 'omen/version'
 require 'omen/engine'
 

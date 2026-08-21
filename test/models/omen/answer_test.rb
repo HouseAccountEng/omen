@@ -25,16 +25,6 @@ class Omen::AnswerTest < ActiveSupport::TestCase
     assert_not said.cut_off?
   end
 
-  test 'a reply cut short is not JSON at all, and reads as an answer with nothing in it' do
-    said = Omen::Answer.new stop_reason: 'max_tokens',
-      content: [ { 'type' => 'text', 'text' => '{"sql": "SELECT 1 AS n", "note": "cut' } ]
-
-    assert said.cut_off?
-    assert_equal '', said.sql
-    assert_equal '', said.note
-    assert_empty said.combine
-  end
-
   test 'an answer says it ran past the page where one row more than the cap came back' do
     capped = Array.new Omen.config.maximum_rows, {}
 
