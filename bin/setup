@@ -2,3 +2,4 @@
 set -euo pipefail
 
 bundle install
+bin/rails app:db:prepare

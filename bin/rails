@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+# Runs a Rails command against the dummy app this gem is tested in.
+
+ENGINE_ROOT = File.expand_path '..', __dir__
+ENGINE_PATH = File.expand_path '../lib/omen/engine', __dir__
+APP_PATH = File.expand_path '../test/dummy/config/application', __dir__
+
+ENV['BUNDLE_GEMFILE'] ||= File.expand_path '../Gemfile', __dir__
+require 'bundler/setup' if File.exist? ENV['BUNDLE_GEMFILE']
+
+require 'rails/all'
+require 'rails/engine/commands'

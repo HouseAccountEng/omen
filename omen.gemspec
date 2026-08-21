@@ -16,8 +16,11 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version       = '>= 3'
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    Dir['{app,config,db,lib}/**/*', 'MIT-LICENSE', 'Rakefile', 'README.md']
+    Dir['{app,db,lib}/**/*', 'CHANGELOG.md', 'LICENSE.txt', 'README.md']
   end
 
+  spec.add_dependency 'active_job-performs' # to answer a question outside the request
+  spec.add_dependency 'anthropic' # to reach Claude at all
+  spec.add_dependency 'pg' # to read the table a result column came from, and to cast one back
   spec.add_dependency 'rails' # to autoload the models and prefix their tables
 end

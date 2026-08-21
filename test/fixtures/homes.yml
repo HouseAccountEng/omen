@@ -1,0 +1,11 @@
+rodeo:
+  contact: wilder
+  city: Beverly Hills
+  street: 2000 North Rodeo Drive
+
+apartment:
+  contact: wilder
+  city: Beverly Hills
+  street: 1 Rodeo Dr
+  apt: apt 4
+  occupied_on: 2026-03-01

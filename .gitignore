@@ -6,3 +6,5 @@
 *.gem
 coverage/
 Gemfile.lock
+/test/dummy/log/*.log
+/test/dummy/tmp/

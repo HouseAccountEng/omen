@@ -1,0 +1,7 @@
+jobber:
+  name: Jobber Handyman
+
+local:
+  name: Local Handyman
+  secret: S3cr3t
+  access_token: t0ken

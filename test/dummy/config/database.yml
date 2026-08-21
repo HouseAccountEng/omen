@@ -1,0 +1,26 @@
+# Two entries, one database: 'primary' owns it and may write, 'reader' logs in as a role
+# granted SELECT only. Omen reads every statement through the second one.
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
+
+development:
+  primary: &development
+    <<: *default
+    database: omen_dummy_development
+  reader:
+    <<: *development
+    replica: true
+    username: omen_dummy_reader
+    password: reader
+
+test:
+  primary: &test
+    <<: *default
+    database: omen_dummy_test
+  reader:
+    <<: *test
+    replica: true
+    username: omen_dummy_reader
+    password: reader

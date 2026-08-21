@@ -1,23 +1,48 @@
 # Omakase Ruby styling for Rails
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
+inherit_mode:
+  merge:
+    - Exclude
+
 AllCops:
   TargetRubyVersion: 4.0
+  Exclude:
+    # Dumped by Rails in its own style, and the next dump would undo any edit made here
+    - 'test/dummy/db/schema.rb'
+  # Adopt every cop a new release brings, rather than pinning to today's set
+  NewCops: enable
+  # An extension we decline is declined in this file, not merely ignored
+  SuggestExtensions: false
+
+# We never freeze a string, so the magic comment has nothing to say
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: never
+
+# The cop demands '.freeze' on string constants and cannot skip them
+Style/MutableConstant:
+  Enabled: false
 
 Style/StringLiterals:
-  Enabled: false
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: true
+  EnforcedStyle: single_quotes
 
 Style/TrailingCommaInArrayLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: consistent_comma
 
 Layout/SpaceInsideArrayLiteralBrackets:
   Enabled: false
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: consistent_comma
 
 Layout/CaseIndentation:
-  Enabled: false
+  EnforcedStyle: end
+  IndentOneStep: true
 
 Metrics/ClassLength:
   Enabled: true
@@ -36,3 +61,22 @@ Metrics/ModuleLength:
 Layout/LineLength:
   Enabled: true
   Max: 100
+  Exclude:
+    # A shipped migration is never edited, and the data it carries does not wrap
+    - 'db/migrate/**/*'
+
+# 'private' sits at the level of 'class', so it reads as a divider
+Layout/AccessModifierIndentation:
+  Enabled: true
+  EnforcedStyle: outdent
+
+# One 'include' statement carries the list, split only when it will not fit
+Style/MixinGrouping:
+  Enabled: true
+  EnforcedStyle: grouped
+
+# Omit parentheses on a call's arguments, keeping the inner ones parsing needs -- but a line
+# carrying an `if` keeps them, and 'omit_parentheses' has no option for that exception, so the
+# rule lives in the shared STYLE.md and in review rather than here
+Style/MethodCallWithArgsParentheses:
+  Enabled: false
