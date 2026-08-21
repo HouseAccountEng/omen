@@ -24,12 +24,13 @@ module Omen
     NO_SCHEMA = 'Omen shows Claude the schema Rails dumps, and there is no file at'
 
     # @param adapter [String, nil] what this app reaches its own database through.
-    # @param schema_format [Symbol] the format it dumps its schema in.
-    # @param schema [Pathname] where that dump is kept.
+    # @param schema_format [Symbol, nil] the format it declares, nil where it declares none.
+    # @param schema [Pathname] where the dump is kept.
     # @return [void]
     def self.met(adapter:, schema_format:, schema:)
+      dumps = schema_format || FORMAT
       raise Unmet, "#{WRONG_ADAPTER} #{adapter.inspect}" unless adapter == ADAPTER
-      raise Unmet, "#{WRONG_FORMAT} #{schema_format.inspect}" unless schema_format == FORMAT
+      raise Unmet, "#{WRONG_FORMAT} #{dumps.inspect}" unless dumps == FORMAT
       raise Unmet, "#{NO_SCHEMA} #{schema}" unless File.exist? schema
     end
   end

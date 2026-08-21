@@ -6,6 +6,11 @@ class Omen::RequirementsTest < ActiveSupport::TestCase
       schema: Omen.config.schema
   end
 
+  test 'an app that declares no format at all is taken to dump the one Rails dumps by default' do
+    assert_nil Omen::Requirements.met adapter: 'postgresql', schema_format: nil,
+      schema: Omen.config.schema
+  end
+
   test 'an app on another adapter is refused, rather than promised what only Postgres keeps' do
     refused = assert_raises Omen::Requirements::Unmet do
       Omen::Requirements.met adapter: 'mysql2', schema_format: :ruby, schema: Omen.config.schema

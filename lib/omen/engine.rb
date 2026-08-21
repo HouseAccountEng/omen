@@ -3,13 +3,14 @@ module Omen
   class Engine < ::Rails::Engine
     isolate_namespace Omen
 
-    # Read off what the app says about itself rather than by connecting, and late enough that
-    # a host's own initializer has already said where its schema is.
+    # Read off what the app declares rather than by connecting, and late enough that its own
+    # initializer has already said where its schema is. The declared format rather than the
+    # applied one, so nothing here depends on which after_initialize hook ran first.
     config.after_initialize do
       configured = ActiveRecord::Base.configurations.configs_for env_name: Rails.env,
         name: 'primary'
       Omen::Requirements.met adapter: configured&.adapter, schema: Omen.config.schema,
-        schema_format: ActiveRecord.schema_format
+        schema_format: Rails.application.config.active_record.schema_format
     end
   end
 end
