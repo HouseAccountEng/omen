@@ -7,6 +7,8 @@ SimpleCov.start do
   cover '{app,lib}/**/*.rb'
   # Read by the gemspec, which Bundler evaluates before this line runs, and it holds a constant
   skip 'lib/omen/version.rb'
+  # What the generator writes into a host, which is prose here and Ruby only once it lands
+  skip '/templates/'
 end
 SimpleCov.minimum_coverage 100
 
