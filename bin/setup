@@ -2,4 +2,5 @@
 set -euo pipefail
 
 bundle install
-bin/rails app:db:prepare
+bin/rake db:setup
+bin/rake db:test:prepare
