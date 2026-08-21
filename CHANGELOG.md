@@ -7,6 +7,9 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Fix] Point RubyGems at the API reference, so a gem page and a gem listing say the same
+  thing about where the documentation is
+
 ## 0.2.0 - 2026-08-21
 
 * [Feature] Ask Claude a question about an app's own data, and run the SQL it writes against a

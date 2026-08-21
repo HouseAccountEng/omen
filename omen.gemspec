@@ -10,10 +10,11 @@ Gem::Specification.new do |spec|
   spec.description = 'Turns a question into the SQL that answers it, and runs it read-only'
   spec.license     = 'MIT'
 
-  spec.metadata['homepage_uri']    = spec.homepage
-  spec.metadata['source_code_uri'] = 'https://github.com/claudiob/omen/'
-  spec.metadata['changelog_uri']   = 'https://github.com/claudiob/omen/blob/main/CHANGELOG.md'
-  spec.required_ruby_version       = '>= 3'
+  spec.metadata['homepage_uri']      = spec.homepage
+  spec.metadata['source_code_uri']   = 'https://github.com/claudiob/omen/'
+  spec.metadata['changelog_uri']     = 'https://github.com/claudiob/omen/blob/main/CHANGELOG.md'
+  spec.metadata['documentation_uri'] = 'https://rubydoc.info/gems/omen'
+  spec.required_ruby_version         = '>= 3'
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
     Dir['{app,db,lib}/**/*', 'CHANGELOG.md', 'LICENSE.txt', 'README.md']
