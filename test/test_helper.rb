@@ -23,7 +23,7 @@ require 'omen/stubs'
 
 module ActiveSupport
   class TestCase
-    include Omen::Stubs
+    include ActiveJob::TestHelper, Omen::Stubs
 
     self.fixture_paths = [ File.expand_path('fixtures', __dir__) ]
 

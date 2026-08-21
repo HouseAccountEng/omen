@@ -1,6 +1,6 @@
 # What Claude said back: the prose, the statement it wrote, and the rows that statement found.
 class Omen::Answer < Omen.config.record
-  include Omen::Spoken
+  include Omen::Revealed, Omen::Spoken
 
   # A \uXXXX escape that outlived JSON.parse, because Claude escaped the backslash of its own.
   UNICODE_ESCAPE = /\\u([0-9a-fA-F]{4})/

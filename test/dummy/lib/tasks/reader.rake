@@ -63,11 +63,13 @@ end
 # Held rather than looked up again: a gem's own bin/rails loads this file inside the `app`
 # namespace, and the block below runs after that scope is gone. Reenabling matters because
 # db:reset invokes db:create on its way through.
-granted = Rake::Task['db:reader:grant']
+granted = [ Rake::Task['db:reader:grant'], Rake::Task['db:omen:grant'] ]
 
 %w[ db:create db:prepare db:reset db:test:prepare ].each do |name|
   Rake::Task[name].enhance do
-    granted.reenable
-    granted.invoke
+    granted.each do |task|
+      task.reenable
+      task.invoke
+    end
   end
 end

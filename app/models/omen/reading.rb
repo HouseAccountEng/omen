@@ -1,6 +1,6 @@
 # A thread of questions somebody asks Claude about the data this app holds.
 class Omen::Reading < Omen.config.record
-  include Omen::Asked, Omen::Stated
+  include Omen::Asked, Omen::Executed, Omen::Stated
 
   has_many :questions, -> { order :id }, dependent: :destroy
 
@@ -10,6 +10,8 @@ class Omen::Reading < Omen.config.record
   validates :question, presence: true, on: :create
 
   after_create -> { ask question }
+
+  performs :run
 
   # @return [String] the default representation (used in views).
   def to_s = questions.first&.text.to_s.truncate 80

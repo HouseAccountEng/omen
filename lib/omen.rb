@@ -2,6 +2,8 @@ require 'active_job/performs'
 require 'anthropic'
 
 require 'omen/config'
+require 'omen/eastern'
+require 'omen/inquirer'
 require 'omen/requirements'
 require 'omen/version'
 require 'omen/engine'
