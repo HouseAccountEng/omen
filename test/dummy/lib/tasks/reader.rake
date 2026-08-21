@@ -44,7 +44,7 @@ module Reader
       "ALTER ROLE #{role} WITH LOGIN #{ATTRIBUTES} PASSWORD 'reader'",
       "ALTER ROLE #{role} SET default_transaction_read_only = on",
       "GRANT CONNECT ON DATABASE #{database} TO #{role}",
-      'GRANT USAGE ON SCHEMA public TO ' + role,
+      "GRANT USAGE ON SCHEMA public TO #{role}",
       "GRANT SELECT ON ALL TABLES IN SCHEMA public TO #{role}",
       "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO #{role}",
     ]
