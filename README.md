@@ -24,7 +24,31 @@ gem 'omen', '~> 0.2'
 Omen follows [Semantic Versioning](https://semver.org), so `~> major.minor` means `bundle update`
 never crosses a breaking change.
 
-Then, once:
+## Requirements
+
+**PostgreSQL only.** This is not a gap waiting to be filled. Two of the guarantees Omen makes are
+Postgres features with no equivalent elsewhere: it identifies an encrypted column by the table OID
+and column number Postgres reports for each result column, which is what stops an alias or an
+expression from laundering one; and it narrows privileges for the statement it runs with
+`SET LOCAL ROLE`, which reverts when the transaction ends. MySQL has `SET ROLE` but nothing
+transaction-scoped, so a raised exception would leave a pooled connection holding the role. Omen
+raises at boot on any other adapter rather than running with a weaker promise.
+
+**`db/schema.rb`, in Rails' `:ruby` schema format.** The schema is what Claude is shown, so an app
+on `db/structure.sql` cannot use Omen. Checked at boot and raised on, because copying a
+`structure.sql` to that path fails silently and with teeth: the strip regexes read the Ruby DSL,
+so they match nothing, Omen's own tables stay in the prompt, and Claude is shown the log of every
+question ever asked.
+
+**Eastern time.** A stored timestamp is read through an `eastern()` function the rake task
+creates, and every date the prompt asks Claude to reason about is a date in `America/New_York`.
+An app that works in another zone has to say so in the function and rename it.
+
+## Configuration
+
+Installing is three commands and, if you want to change anything, one file.
+
+### The steps
 
 ```sh
 bin/rails generate omen:install   # three migrations, and an initializer you may delete
@@ -47,7 +71,7 @@ granted = Rake::Task['db:omen:grant']
 end
 ```
 
-## What the app around it has to provide
+### What the app around it has to provide
 
 Configuration is optional. Installation is not: four of these are the app's, and Omen cannot
 supply any of them.
@@ -64,27 +88,7 @@ supply any of them.
 - **A `db/schema.rb`.** It is the prompt, so a reading cannot happen before the first
   `db:migrate` has dumped one.
 
-## Requirements
-
-**PostgreSQL only.** This is not a gap waiting to be filled. Two of the guarantees Omen makes are
-Postgres features with no equivalent elsewhere: it identifies an encrypted column by the table OID
-and column number Postgres reports for each result column, which is what stops an alias or an
-expression from laundering one; and it narrows privileges for the statement it runs with
-`SET LOCAL ROLE`, which reverts when the transaction ends. MySQL has `SET ROLE` but nothing
-transaction-scoped, so a raised exception would leave a pooled connection holding the role. Omen
-raises at boot on any other adapter rather than running with a weaker promise.
-
-**`db/schema.rb`, in Rails' `:ruby` schema format.** The schema is what Claude is shown, so an app
-on `db/structure.sql` cannot use Omen. Checked at boot and raised on, because copying a
-`structure.sql` to that path fails silently and with teeth: the strip regexes read the Ruby DSL,
-so they match nothing, Omen's own tables stay in the prompt, and Claude is shown the log of every
-question ever asked.
-
-**Eastern time.** A stored timestamp is read through an `eastern()` function the rake task
-creates, and every date the prompt asks Claude to reason about is a date in `America/New_York`.
-An app that works in another zone has to say so in the function and rename it.
-
-## Configuration
+### The options
 
 Every setting has a default, so the initializer is optional. `rails generate omen:install`
 writes it with each line commented out, as the list of what there is to say.
