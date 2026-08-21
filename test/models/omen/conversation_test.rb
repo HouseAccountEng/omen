@@ -47,6 +47,31 @@ class Omen::ConversationTest < ActiveSupport::TestCase
     assert_nothing_replayed
   end
 
+  # Two queries whatever the reading holds: the questions, and the answers of all of them.
+  test 'a conversation is read in two queries, however many turns it has run to' do
+    stub_claude(*Array.new(4) { claude_answers note: 'Which days did you mean?' })
+    reading = Omen::Reading.create! question: 'How many?'
+    2.times { |asked| answered reading; reading.ask "Since March, then (#{asked})." }
+
+    Omen::Instructions.block # so that reading the schema is not what the count catches
+
+    assert_queries_count 2 do
+      Omen::Conversation.new(reading.questions).advance
+    end
+  end
+
+  test 'a key a host states reaches the API, and one it leaves out is not sent as nothing' do
+    Omen.config.api_key = 'sk-ant-whatever'
+    stub_claude claude_answers(note: 'Which days did you mean?')
+
+    answered Omen::Reading.create!(question: 'How many?')
+
+    assert_requested :post, Omen::Stubs::MESSAGES_URL,
+      headers: { 'X-Api-Key' => 'sk-ant-whatever' }
+  ensure
+    Omen.config.api_key = nil
+  end
+
   # Cut short at max_tokens, a reply is not JSON at all, whatever the output schema demanded.
   test 'a reply the API stopped mid-sentence reads as an answer with nothing in it' do
     stub_claude claude_says '{"sql": "SELECT 1 AS n", "note": "cut'
