@@ -1,0 +1,38 @@
+# Omakase Ruby styling for Rails
+inherit_gem: { rubocop-rails-omakase: rubocop.yml }
+
+AllCops:
+  TargetRubyVersion: 4.0
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Layout/SpaceInsideArrayLiteralBrackets:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Layout/CaseIndentation:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: true
+  CountComments: true
+  Max: 48
+  Include:
+      - 'app/**/*'
+
+Metrics/ModuleLength:
+  Enabled: true
+  CountComments: true
+  Max: 40
+  Include:
+      - 'app/**/*'
+
+Layout/LineLength:
+  Enabled: true
+  Max: 100
