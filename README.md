@@ -1,9 +1,9 @@
 # Omen
 
 You ask Claude a complex question about data stored by your Rails app.
-Claude answers with the SQL. Rails runs it. You win.
+Claude answers with the SQL. Rails runs it.
 
-Omen is a Rails engine that can be mounted on any Rails app running on PostgreSQL.
+Omen is an engine that you too can use. You just need a Rails app running on PostgreSQL.
 Omen provides the models and the logic to talk to Claude; to parse what it says; to run read-only statements.
 
 Your data never travels. Claude is shown the schema and writes one `SELECT`; Rails runs it and
