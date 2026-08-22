@@ -1,13 +1,13 @@
 # Omen
 
-Staff ask Claude a question about the data an app holds; Claude writes the SQL, Rails runs it.
+You ask Claude a complex question about data stored by your Rails app.
+Claude answers with the SQL. Rails runs it. You win.
 
-Omen ships the models and the logic to talk to Claude, parse what it says back, and run the
-statement it wrote against a read-only connection. It ships **no controllers, routes or views** —
-the pages belong to the app that installs it.
+Omen is a Rails engine that can be mounted on any Rails app running on PostgreSQL.
+Omen provides the models and the logic to talk to Claude; to parse what it says; to run read-only statements.
 
-The rows never travel. Claude is shown the schema and writes one `SELECT`; Rails runs it and
-draws the answer for whoever asked. Nothing that statement returned is ever sent back.
+Your data never travels. Claude is shown the schema and writes one `SELECT`; Rails runs it and
+draws the answer (including encrypted attributes) for whoever asked. Nothing that statement returned is ever sent back.
 
 ## How to install
 
@@ -26,35 +26,38 @@ never crosses a breaking change.
 
 ## Requirements
 
-**PostgreSQL only.** This is not a gap waiting to be filled. Two of the guarantees Omen makes are
-Postgres features with no equivalent elsewhere: it identifies an encrypted column by the table OID
-and column number Postgres reports for each result column, which is what stops an alias or an
-expression from laundering one; and it narrows privileges for the statement it runs with
-`SET LOCAL ROLE`, which reverts when the transaction ends. MySQL has `SET ROLE` but nothing
-transaction-scoped, so a raised exception would leave a pooled connection holding the role. Omen
-raises at boot on any other adapter rather than running with a weaker promise.
+**PostgreSQL only** 
 
-**`db/schema.rb`, in Rails' `:ruby` schema format.** The schema is what Claude is shown, so an app
-on `db/structure.sql` cannot use Omen. Checked at boot and raised on, because copying a
-`structure.sql` to that path fails silently and with teeth: the strip regexes read the Ruby DSL,
-so they match nothing, Omen's own tables stay in the prompt, and Claude is shown the log of every
-question ever asked.
+<details>
+  <summary>This is not a gap waiting to be filled. </summary>
+  Two of the guarantees Omen makes are
+  Postgres features with no equivalent elsewhere: it identifies an encrypted column by the table OID
+  and column number Postgres reports for each result column, which is what stops an alias or an
+  expression from laundering one; and it narrows privileges for the statement it runs with
+  `SET LOCAL ROLE`, which reverts when the transaction ends. MySQL has `SET ROLE` but nothing
+  transaction-scoped, so a raised exception would leave a pooled connection holding the role. Omen
+  raises at boot on any other adapter rather than running with a weaker promise.
+</details>
 
-**Eastern time.** A stored timestamp is read through an `eastern()` function the rake task
-creates, and every date the prompt asks Claude to reason about is a date in `America/New_York`.
-An app that works in another zone has to say so in the function and rename it.
+**db/schema.rb in Rails** 
+
+<details>
+  <summary>Only the :ruby schema is supported. </summary>
+  The schema is what Claude is shown, so an app
+  on `db/structure.sql` cannot use Omen. Checked at boot and raised on, because copying a
+  `structure.sql` to that path fails silently and with teeth: the strip regexes read the Ruby DSL,
+  so they match nothing, Omen's own tables stay in the prompt, and Claude is shown the log of every
+  question ever asked.
+</details>
 
 ## Configuration
 
-Installing is three commands and, if you want to change anything, one file.
-
-### The steps
+Installing by adding to your Gemfile and running three commands in your terminal: 
 
 ```sh
-bin/rails generate omen:install   # three migrations, and an initializer you may delete
-bin/rails db:migrate
-bin/rails db:omen:grant           # the role a statement runs as, and the function it reads a
-                                  # timestamp through
+bin/rails g omen:install # adds three migrations + an initializer you can delete
+bin/rails db:migrate     # creates the tables `omen_readings`, `omen_questions`, `omen_answers`
+bin/rails db:omen:grant  # set the read-only role statements run as
 ```
 
 `db:omen:grant` is worth running from the tasks that build a database, so a fresh one is never
@@ -71,10 +74,7 @@ granted = Rake::Task['db:omen:grant']
 end
 ```
 
-### What the app around it has to provide
-
-Configuration is optional. Installation is not: four of these are the app's, and Omen cannot
-supply any of them.
+### Requirements
 
 - **A read-only connection role.** `connects_to database: { writing: :primary, reading: :reader }`
   on the record class, with the `reading` entry logging in as a Postgres role granted `SELECT`
@@ -95,14 +95,8 @@ writes it with each line commented out, as the list of what there is to say.
 
 | Setting | Default |
 |---|---|
-| `record_class` | `'ApplicationRecord'`, falling back to `ActiveRecord::Base` |
-| `reading_role` | `:reading` |
 | `narrow_role` | `'omen_inquirer'` |
-| `claude_model` | `'claude-opus-5'` |
-| `maximum_rows` | `100` |
-| `api_key` | unset, so the Anthropic SDK resolves `ANTHROPIC_API_KEY` and its wider chain |
 | `notes` | none, so the prompt says nothing about this app beyond its schema |
-| `schema_path` | `'db/schema.rb'` |
 
 ## What a host builds on top
 
