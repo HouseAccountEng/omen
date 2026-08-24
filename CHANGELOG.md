@@ -7,6 +7,16 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.3.0 - 2026-08-24
+
+* [Feature] Create a `miles_between(lat1, lng1, lat2, lng2)` function and name it in the prompt,
+  so a radius is four arguments rather than a dozen nested trigonometric calls that a reply
+  balances by hand -- and gets wrong
+* [Fix] Tell Claude that text is single-quoted and an apostrophe inside it is doubled, since a
+  double-quoted literal is read as a column name and refuses the whole statement
+* [Fix] Tell Claude to declare a `combine` where an encrypted value belongs inside a sentence,
+  rather than returning the pieces as columns for the page to draw apart
+
 ## 0.2.2 - 2026-08-24
 
 * [Fix] Run a load hook as each model loads, so a host declares `broadcasts_refreshes` and the

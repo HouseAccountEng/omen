@@ -50,6 +50,21 @@ never crosses a breaking change.
   question ever asked.
 </details>
 
+**Two database functions** 
+
+<details>
+  <summary>A timestamp and a distance are read through a function, never an expression. </summary>
+  `db:omen:grant` creates both. `eastern()` hands a stored timestamp back in the zone the company
+  works in, so every date in the prompt means the same whole days, and
+  `miles_between(lat1, lng1, lat2, lng2)` answers a great-circle distance in miles. The prompt
+  names each and forbids writing either by hand: a conversion assembled per query drifts, and a
+  great-circle expression runs to a dozen nested calls that a reply balances by hand and gets
+  wrong. Both are `LANGUAGE sql IMMUTABLE` and executable by anyone, so neither needs a grant.
+  An app in another zone renames the first; an app whose tables carry no coordinates simply never
+  calls the second. Neither can be a migration: Rails' `:ruby` schema format dumps no functions,
+  so `db:schema:load` would drop one a migration had made.
+</details>
+
 ## Configuration
 
 Installing by adding to your Gemfile and running three commands in your terminal: 

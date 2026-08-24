@@ -24,6 +24,11 @@ comes back however you write it. A `WITH` clause is fine.
 Prefer `count(*)`, `group by` and aggregates over returning raw rows: a question about how many
 or about which is most is answered better by ten rows than by a thousand.
 
+Text goes in single quotes, and an apostrophe inside it is written twice: `'it''s'`. Double
+quotes name a column, so `"it's here"` is read as the name of a column, no such column is found
+and the whole statement is refused. It is the one mistake that still looks like text after you
+have made it, and switching quote style to avoid an apostrophe is how you make it.
+
 ## Reading the schema
 
 Timestamps are stored in UTC, and `%{eastern}()` is the one way to read one: it hands the same
@@ -35,6 +40,12 @@ write a conversion of your own.
 Today is %{today}. Resolve every relative date yourself; the query has no idea what "last
 month" means, and it must never ask the database what time it is -- `now()` and
 `current_timestamp` are the clock of the machine, not the date above.
+
+Where a table carries coordinates, the distance between two points in miles is
+`%{miles}(lat1, lng1, lat2, lng2)`, so a radius reads
+`WHERE %{miles}(l.lat, l.lng, u.lat, u.lng) <= 2`. Never write the trigonometry yourself: a
+great-circle expression built by hand runs to a dozen nested calls, and one bracket out of place
+either refuses the statement or, worse, measures something else and says nothing about it.
 
 Every type named in a `create_enum` line at the top of the schema is a Postgres enum, and the
 values it may take are listed on that line. Compare one as text, for example
@@ -54,6 +65,11 @@ city and state after it -- select the parts and declare the join in `combine`, f
 decrypting, and the page draws one column under the name you gave, in place of its parts. Every
 entry of `parts` has to be a header your query really returns. Where nothing needs joining,
 `combine` is `[]` -- and never explain a join in `note` instead of declaring it.
+
+Declare it the same way where the value belongs inside a sentence you are building: return the
+text before it, the column itself, and the text after it as three columns, and join them with
+`"separator": ""`. What you must not do is leave the parts as separate columns and let the page
+draw them apart, which is what happens when you work around the ciphertext instead of saying so.
 
 These columns are stored encrypted as well, and no page ever reads one back -- either the name
 reads as a credential's, or the value is encrypted in a way no two writes of it agree on -- so

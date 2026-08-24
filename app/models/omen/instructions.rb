@@ -6,6 +6,9 @@ class Omen::Instructions
   # The database function a stored timestamp is read through, created by the gem's rake task.
   EASTERN = 'eastern'
 
+  # The database function a distance in miles is measured with, created by the same task.
+  MILES = 'miles_between'
+
   # The one shape a reply may take: both keys required, and no others admitted.
   ANSWER = {
     type: 'object', additionalProperties: false, required: %w[ sql note combine ],
@@ -33,7 +36,7 @@ class Omen::Instructions
   # Today's date is said out loud because "last month" is Claude's to resolve, and it has no clock.
   # @return [String] the prose, with the schema, the subclasses and the host's notes filled in.
   def text
-    format File.read(PROSE), today: Date.current.to_fs(:long), eastern: EASTERN,
+    format File.read(PROSE), today: Date.current.to_fs(:long), eastern: EASTERN, miles: MILES,
       schema: schema, types: types, readable: readable, refused: refused,
       notes: Omen.config.notes
   end

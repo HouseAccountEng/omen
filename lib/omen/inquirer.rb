@@ -75,6 +75,7 @@ module Omen
         *members.map { |member| "GRANT #{role} TO #{connection.quote_table_name member}" },
         *revoked(connection, role),
         *Eastern.statements(connection),
+        *Distance.statements(connection),
       ]
     end
 
