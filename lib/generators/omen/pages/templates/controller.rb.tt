@@ -1,0 +1,54 @@
+# The pages of a reading. Written by `rails g omen:pages` and this app's from then on, which is
+# also why it descends from ApplicationController: whatever guards the rest of this app guards
+# the one page here that will run SQL across all of it.
+class <%= plural_name.camelize %>Controller < ApplicationController
+  before_action :set_<%= singular_name %>, only: %i[ show update destroy ]
+
+  # GET /<%= plural_name %>
+  def index
+    @<%= plural_name %> = <%= class_name %>.order id: :desc
+    @<%= singular_name %> = <%= class_name %>.new
+  end
+
+  # GET /<%= plural_name %>/1
+  def show
+  end
+
+  # POST /<%= plural_name %>
+  # Opening a reading is asking its first question, so there is no page for a blank one.
+  def create
+    @<%= singular_name %> = <%= class_name %>.new <%= singular_name %>_params
+
+    if @<%= singular_name %>.save
+      redirect_to @<%= singular_name %>
+    else
+      @<%= plural_name %> = <%= class_name %>.order id: :desc
+      render :index, status: :unprocessable_content
+    end
+  end
+
+  # PATCH/PUT /<%= plural_name %>/1
+  # A reading is never edited: what was asked is what it stays. Asking again adds to the thread,
+  # and Claude is shown the whole of it when it answers.
+  def update
+    question = <%= singular_name %>_params[:question]
+    @<%= singular_name %>.ask(question) if question.present?
+
+    redirect_to @<%= singular_name %>
+  end
+
+  # DELETE /<%= plural_name %>/1
+  def destroy
+    @<%= singular_name %>.destroy!
+
+    redirect_to <%= plural_name %>_path, status: :see_other
+  end
+
+private
+
+  def set_<%= singular_name %>
+    @<%= singular_name %> = <%= class_name %>.find params.expect(:id)
+  end
+
+  def <%= singular_name %>_params = params.expect <%= singular_name %>: [ :question ]
+end

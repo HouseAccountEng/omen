@@ -1,0 +1,7 @@
+# A reading of this app's own data: what somebody asked Claude, and what came back.
+#
+# Omen::Reading has a type column nowhere, so this is a second name for the same rows rather
+# than a kind of them. <%= class_name %>.all carries no condition, and a belongs_to declared here
+# is one that every reading has.
+class <%= class_name %> < Omen::Reading
+end

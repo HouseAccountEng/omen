@@ -1,0 +1,25 @@
+Description:
+    Writes the pages a reading is seen through, into this app: a name for one, a controller,
+    three views and a route. All of it is this app's from the moment it lands -- rename it,
+    restyle it, throw it away.
+
+    The controller descends from ApplicationController, so whatever guards the rest of this
+    app guards the one page that will run SQL across all of it.
+
+    Where Turbo is installed, the show page subscribes to the reading and an initializer
+    declaring broadcasts_refreshes is written beside it, so an answer arrives on its own
+    rather than waiting for a reload.
+
+Example:
+    bin/rails generate omen:pages
+
+        creates  app/models/inquiry.rb
+                 app/controllers/inquiries_controller.rb
+                 app/views/inquiries/index.html.erb
+                 app/views/inquiries/show.html.erb
+                 app/views/inquiries/_form.html.erb
+          route  resources :inquiries
+
+    bin/rails generate omen:pages Consultation
+
+        the same, under a name of this app's own choosing.

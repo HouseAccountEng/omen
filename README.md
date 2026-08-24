@@ -1,269 +1,64 @@
 # Omen
 
-You ask Claude a complex question about data stored by your Rails app.
+You ask Claude a complex question about the data your Rails app already holds.
 Claude answers with the SQL. Rails runs it.
 
-Omen is an engine that you too can use. You just need a Rails app running on PostgreSQL.
-Omen provides the models and the logic to talk to Claude; to parse what it says; to run read-only statements.
+<!-- The demo goes here. Drop the recording in as demo.gif at the root of the repo and
+     uncomment the line below:
 
-Your data never travels. Claude is shown the schema and writes one `SELECT`; Rails runs it and
-draws the answer (including encrypted attributes) for whoever asked. Nothing that statement returned is ever sent back.
+![Asking Omen a question inside a Rails app](demo.gif)
+-->
 
-## How to install
+Your data never travels. Claude is shown the schema and writes one `SELECT`; Rails runs it
+read-only and draws the answer -- encrypted columns included -- for whoever asked. Nothing that
+statement returned is ever sent back.
 
-```sh
-gem install omen
-```
+## Running it
 
-Or, in a `Gemfile`, pinned to the current minor while this is still below 1.0:
+In your `Gemfile`, pinned to the current minor while this is still below 1.0:
 
 ```ruby
 gem 'omen', '~> 0.4.0'
 ```
 
-Omen follows [Semantic Versioning](https://semver.org) from 1.0 onwards. Until then a release may
-break whatever it likes, so the pin stops short of the next minor: `~> 0.4.0` takes every fix in
-0.4 and nothing beyond it.
-
-## Requirements
-
-**PostgreSQL only** 
-
-<details>
-  <summary>This is not a gap waiting to be filled. </summary>
-  Two of the guarantees Omen makes are
-  Postgres features with no equivalent elsewhere: it identifies an encrypted column by the table OID
-  and column number Postgres reports for each result column, which is what stops an alias or an
-  expression from laundering one; and it narrows privileges for the statement it runs with
-  `SET LOCAL ROLE`, which reverts when the transaction ends. MySQL has `SET ROLE` but nothing
-  transaction-scoped, so a raised exception would leave a pooled connection holding the role. Omen
-  raises at boot on any other adapter rather than running with a weaker promise.
-</details>
-
-**db/schema.rb in Rails** 
-
-<details>
-  <summary>Only the :ruby schema is supported. </summary>
-  The schema is what Claude is shown, so an app
-  on `db/structure.sql` cannot use Omen. Checked at boot and raised on, because copying a
-  `structure.sql` to that path fails silently and with teeth: the strip regexes read the Ruby DSL,
-  so they match nothing, Omen's own tables stay in the prompt, and Claude is shown the log of every
-  question ever asked.
-</details>
-
-**Three database functions, all prefixed** 
-
-<details>
-  <summary>A timestamp, a day and a distance go through a function, never an expression. </summary>
-  `db:omen:grant` creates all three, each named `omen_` so that none of them can take a name an
-  app wanted for itself -- `today` especially. `omen_time_zone()` hands a stored timestamp back in
-  the zone the company works in, so every date means the same whole days. `omen_today()` answers
-  what day it is there, and the prompt builds every relative window on it, so a statement that is
-  kept and run again answers "last month" for the month it is run in rather than the month it was
-  written in. `omen_miles_between(lat1, lng1, lat2, lng2)` answers a great-circle distance in
-  miles. The prompt names each and forbids writing any of them by hand: a conversion assembled per
-  query drifts, and a great-circle expression runs to a dozen nested calls that a reply balances
-  by hand and gets wrong. The first and last are `IMMUTABLE`; `omen_today()` is `STABLE`, because
-  it reads the clock and an immutable function of the clock may be folded to a constant -- which
-  is exactly the sliding this one exists to keep. All are executable by anyone, so none needs a
-  grant. An app in another zone renames the first two; an app whose tables carry no coordinates
-  never calls the last. None can be a migration: Rails' `:ruby` schema format dumps no functions,
-  so `db:schema:load` would drop one a migration had made.
-</details>
-
-## Configuration
-
-Installing by adding to your Gemfile and running three commands in your terminal: 
+Then four commands:
 
 ```sh
-bin/rails g omen:install # adds three migrations + an initializer you can delete
-bin/rails db:migrate     # creates the tables `omen_readings`, `omen_questions`, `omen_answers`
-bin/rails db:omen:grant  # set the read-only role statements run as
+bin/rails g omen:install   # three migrations and an initializer you may delete
+bin/rails db:migrate       # omen_readings, omen_questions, omen_answers
+bin/rails db:omen:grant    # the read-only role a statement runs as, and three functions
+bin/rails g omen:pages     # a model, a controller, three views and a route, all yours
 ```
 
-`db:omen:grant` is worth running from the tasks that build a database, so a fresh one is never
-missing the role. In `lib/tasks` of the host:
+`bin/rails s`, then `/inquiries`. Type a question and the answer arrives under it, with the
+statement Claude wrote and the rows it found.
 
-```ruby
-granted = Rake::Task['db:omen:grant']
+## What your app has to have first
 
-%w[ db:create db:prepare db:reset db:test:prepare ].each do |name|
-  Rake::Task[name].enhance do
-    granted.reenable
-    granted.invoke
-  end
-end
-```
+None of it is Omen's to create, and each is checked rather than assumed:
 
-### Requirements
+- **PostgreSQL**, and a `db/schema.rb` rather than a `structure.sql`. Both are raised on at boot.
+- **A read-only connection role**: `connects_to database: { writing: :primary, reading: :reader }`
+  on `ApplicationRecord`, where `reader` logs in as a Postgres role granted `SELECT` and nothing
+  else. Omen raises rather than falling back to a role that could write, which is the point.
+- **`ANTHROPIC_API_KEY`**, or a key named in the initializer.
+- **Active Record Encryption keys**, without which an encrypted column reads back as a
+  placeholder rather than as its value, quietly.
+- **An `ApplicationJob`**, since a reading is answered outside the request.
 
-- **A read-only connection role.** `connects_to database: { writing: :primary, reading: :reader }`
-  on the record class, with the `reading` entry logging in as a Postgres role granted `SELECT`
-  and nothing else. Omen raises rather than falling back to a role that could write, which is
-  the point. Creating that role is the app's own business — Omen has no name for it, and
-  discovers it when granting.
-- **Active Record Encryption keys.** Without them an encrypted column reads back as the
-  placeholder rather than as the value, quietly.
-- **An `ApplicationJob`.** A reading is answered outside the request, and the job descends
-  from the app's own base class.
-- **A `db/schema.rb`.** It is the prompt, so a reading cannot happen before the first
-  `db:migrate` has dumped one.
+## What you get
 
-### The options
+`Omen::Reading.create! question: 'Where are the homes we serve?'` is the whole of asking, and
+`reading.ask '...'` is a follow-up. Each question is answered in a job, and the answer carries
+the statement Claude wrote, the rows it found, and which of their headers held an encrypted
+column. `rails g omen:pages` writes the pages that draw all of that, into your app, for you to
+keep or replace.
 
-Every setting has a default, so the initializer is optional. `rails generate omen:install`
-writes it with each line commented out, as the list of what there is to say.
+## Everything else
 
-| Setting | Default |
-|---|---|
-| `narrow_role` | `'omen_inquirer'` |
-| `notes` | none, so the prompt says nothing about this app beyond its schema |
-
-## What a host builds on top
-
-`Omen::Reading` has a `type` column nowhere, so a subclass is a transparent second name for the
-same rows: `Inquiry.all` carries no type condition, and `to_partial_path` becomes
-`inquiries/inquiry`.
-
-```ruby
-class Inquiry < Omen::Reading
-  belongs_to :agent
-end
-```
-
-`Omen::Reading.create! question: 'Where are the homes we serve?'` is the whole of asking; a
-follow-up is `reading.ask '...'`. Each question is answered in a job, and the answer carries the
-statement Claude wrote, the rows it found, and which header of theirs held an encrypted column.
-
-Two things a subclass cannot reach, because the gem's own class is what a job loads:
-`broadcasts_refreshes`, and anything else that has to be declared on `Omen::Reading` itself. One
-line in the host does it:
-
-```ruby
-ActiveSupport.on_load(:omen_reading) { broadcasts_refreshes }
-```
-
-## Putting it on a screen
-
-Omen ships no controllers, no views and no routes, and there is no engine to mount: what a
-reading looks like belongs to the app that installs it. So the shortest way to see one is the
-scaffold Rails already writes, with three edits afterwards. Given an app that has run the three
-commands above:
-
-```sh
-echo 'class Inquiry < Omen::Reading; end' > app/models/inquiry.rb
-bin/rails g scaffold_controller Inquiry question:text
-```
-
-`scaffold_controller` rather than `scaffold`, because the table already exists and the model is
-one line: no migration, no `rails g model`. It writes `InquiriesController`, five views and a
-helper, and adds `resources :inquiries` to `config/routes.rb`. That is already enough to ask:
-`bin/rails s`, `/inquiries/new`, type a question, submit. The record saves, `after_create` turns
-what was typed into an `Omen::Question`, and the job goes off to Claude. The page it redirects to
-shows nothing, which is what the three edits are for.
-
-**A reading has no `question` column.** `question` is an attribute a reading is opened with; what
-is kept is a row in `omen_questions`, and its answer beside it. So the record partial the scaffold
-wrote, `app/views/inquiries/_inquiry.html.erb`, draws the thread instead:
-
-```erb
-<div id="<%= dom_id inquiry %>">
-  <% inquiry.questions.each do |question| %>
-    <p><strong><%= question.text %></strong></p>
-    <% if (answer = question.answer) %>
-      <p><%= answer.note %></p>
-      <% if answer.error.present? %>
-        <p style="color: red"><%= answer.error %></p>
-      <% elsif answer.sql.present? %>
-        <details><summary>SQL</summary><pre><%= answer.sql %></pre></details>
-        <table border="1">
-          <tr><% answer.shown.first&.each_key do |header| %><th><%= header %></th><% end %></tr>
-          <% answer.shown.each do |row| %>
-            <tr><% row.each_value do |value| %><td><%= value %></td><% end %></tr>
-          <% end %>
-        </table>
-        <% if answer.truncated? %><p>The first <%= Omen.config.maximum_rows %> rows.</p><% end %>
-      <% end %>
-    <% end %>
-  <% end %>
-  <% if inquiry.answering? %><p>Claude is working on it.</p><% end %>
-  <% if inquiry.failed? %><p style="color: red">That reading could not be answered.</p><% end %>
-</div>
-```
-
-`answer.shown` and not `answer.result`: the second is what Postgres handed back, the first is that
-read through Active Record Encryption and through whatever columns Claude asked to be drawn joined.
-An answer with no `sql` is Claude asking something back, and `note` is where it says so.
-
-The index renders that same partial once per row, which is a page of every answer ever given. It
-wants the one-liner instead, which is what `Omen::Reading#to_s` is for -- the first question,
-truncated. In `app/views/inquiries/index.html.erb`, `<%= render inquiry %>` becomes:
-
-```erb
-<%= link_to inquiry, inquiry %>
-```
-
-**Editing a reading is asking the next question.** There is nothing to edit: `update` would write
-a virtual attribute that nothing reads back. A follow-up is `reading.ask`, and it needs no route of
-its own, since PATCH is already there and `_form.html.erb` already posts to it. Drop `:edit` from
-the `before_action` list, delete the `edit` action and `app/views/inquiries/edit.html.erb`, and
-leave `update` as:
-
-```ruby
-def update
-  @inquiry.ask inquiry_params[:question]
-  redirect_to @inquiry
-end
-```
-
-Then `app/views/inquiries/show.html.erb` takes the form back, where it now asks rather than edits,
-and gives up the "Edit this inquiry" link:
-
-```erb
-<%= render "form", inquiry: @inquiry %>
-```
-
-**The answer lands after the response has gone.** A reading is answered in a job, so the redirect
-arrives first and the page is empty on purpose. In development the default `async` adapter runs
-that job in the same process, so nothing has to be started alongside the server; reloading a moment
-later is the whole of seeing an answer. To have it arrive by itself, the load hook from above and
-one line in the view:
-
-```ruby
-# config/initializers/omen.rb
-ActiveSupport.on_load(:omen_reading) { broadcasts_refreshes }
-```
-
-```erb
-<%= turbo_stream_from @inquiry.becomes(Omen::Reading) %>
-```
-
-`becomes`, because a question reaches its reading through the association and hands the job an
-`Omen::Reading`; that is the class it broadcasts as, and a stream named after `Inquiry` would hear
-nothing.
-
-None of this is what makes it work. `ANTHROPIC_API_KEY` has to be resolvable, `db:omen:grant` has
-to have run, and `config/database.yml` has to have the read-only entry that `connects_to` names.
-The two are missed differently, which is why the partial above draws both: a reading that could not
-reach Claude at all is left `failed`, with the class of what went wrong in the log and nothing in
-the page, since a message from that far down may quote a row; a reading whose statement had no role
-to run as is answered, with `Omen::Role::MISCONFIGURED` in `answer.error`.
-
-## After the first deploy
-
-The narrow role is granted `SELECT` on every table and then refused Omen's own three, which can
-only happen once those tables exist. On a database that forbids `CREATE ROLE` — a managed one
-usually does — the role is made by hand and the revocation with it:
-
-```sql
-REVOKE SELECT ON omen_readings, omen_questions, omen_answers FROM omen_inquirer;
-```
-
-A managed database also refuses `ALTER ROLE ... NOSUPERUSER`, since only a superuser may say it.
-Omen skips that statement and carries on rather than stopping, then reads the role back and says
-so if it holds `SUPERUSER`, `BYPASSRLS` or `REPLICATION` -- which a role it created never does.
-
-A missed table there means Claude is shown the log of every question ever asked.
+[INSTRUCTIONS.md](INSTRUCTIONS.md) has the reasoning: why Postgres and no other adapter, what
+`db:omen:grant` creates and what to do on a managed database that forbids it, every setting and
+its default, what the generated pages get right and why, and what a host can build on top.
 
 ## License
 

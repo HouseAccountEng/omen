@@ -1,0 +1,45 @@
+<%- if turbo? -%>
+<%%= turbo_stream_from @<%= singular_name %>.becomes(Omen::Reading) %>
+
+<%- end -%>
+<p><%%= link_to 'All <%= plural_name %>', <%= plural_name %>_path %></p>
+
+<%% @<%= singular_name %>.questions.each do |question| %>
+  <h2><%%= question.text %></h2>
+
+  <%% if (answer = question.answer) %>
+    <p><%%= answer.note %></p>
+
+    <%% if answer.error.present? %>
+      <p style="color: red"><%%= answer.error %></p>
+    <%% elsif answer.sql.present? %>
+      <details>
+        <summary>SQL</summary>
+        <pre><%%= answer.sql %></pre>
+      </details>
+
+      <table border="1" cellpadding="4">
+        <tr><%% answer.shown.first&.each_key do |header| %><th><%%= header %></th><%% end %></tr>
+        <%% answer.shown.each do |row| %>
+          <tr><%% row.each_value do |value| %><td><%%= value %></td><%% end %></tr>
+        <%% end %>
+      </table>
+
+      <%% if answer.truncated? %>
+        <p>The first <%%= Omen.config.maximum_rows %> rows, and there are more.</p>
+      <%% end %>
+    <%% end %>
+  <%% end %>
+<%% end %>
+
+<%% if @<%= singular_name %>.answering? %>
+  <p>Claude is working on it.</p>
+<%% else %>
+  <%% if @<%= singular_name %>.failed? %>
+    <p style="color: red">That one could not be answered. Asking again starts it over.</p>
+  <%% end %>
+
+  <%%= render 'form', <%= singular_name %>: @<%= singular_name %> %>
+<%% end %>
+
+<%%= button_to 'Delete', @<%= singular_name %>, method: :delete %>

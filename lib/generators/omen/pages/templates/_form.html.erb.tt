@@ -1,0 +1,8 @@
+<%%= form_with model: <%= singular_name %> do |form| %>
+  <%% if <%= singular_name %>.errors.any? %>
+    <p style="color: red"><%%= <%= singular_name %>.errors.full_messages.to_sentence %></p>
+  <%% end %>
+
+  <div><%%= form.textarea :question, rows: 3, cols: 60 %></div>
+  <div><%%= form.submit 'Ask' %></div>
+<%% end %>

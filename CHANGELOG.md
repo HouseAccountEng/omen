@@ -7,6 +7,14 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Feature] Write the pages a reading is seen through with `rails g omen:pages [NAME]`: a
+  subclass, a controller, three views and a route, all of them the host's from the moment they
+  land. It descends from `ApplicationController` rather than being mounted, so whatever guards
+  the app guards the page that runs SQL over it, and it gets right the four things a host would
+  otherwise have to learn first -- that opening a reading is asking, that a reading is asked
+  again rather than edited, that rows are drawn from `shown` and never from `result`, and that
+  the refresh is subscribed to as `Omen::Reading` and not as the name the host gave it
+
 ## 0.4.0 - 2026-08-24
 
 * [Breaking change] Prefix every database function this gem creates, and drop the names they
