@@ -143,6 +143,112 @@ line in the host does it:
 ActiveSupport.on_load(:omen_reading) { broadcasts_refreshes }
 ```
 
+## Putting it on a screen
+
+Omen ships no controllers, no views and no routes, and there is no engine to mount: what a
+reading looks like belongs to the app that installs it. So the shortest way to see one is the
+scaffold Rails already writes, with three edits afterwards. Given an app that has run the three
+commands above:
+
+```sh
+echo 'class Inquiry < Omen::Reading; end' > app/models/inquiry.rb
+bin/rails g scaffold_controller Inquiry question:text
+```
+
+`scaffold_controller` rather than `scaffold`, because the table already exists and the model is
+one line: no migration, no `rails g model`. It writes `InquiriesController`, five views and a
+helper, and adds `resources :inquiries` to `config/routes.rb`. That is already enough to ask:
+`bin/rails s`, `/inquiries/new`, type a question, submit. The record saves, `after_create` turns
+what was typed into an `Omen::Question`, and the job goes off to Claude. The page it redirects to
+shows nothing, which is what the three edits are for.
+
+**A reading has no `question` column.** `question` is an attribute a reading is opened with; what
+is kept is a row in `omen_questions`, and its answer beside it. So the record partial the scaffold
+wrote, `app/views/inquiries/_inquiry.html.erb`, draws the thread instead:
+
+```erb
+<div id="<%= dom_id inquiry %>">
+  <% inquiry.questions.each do |question| %>
+    <p><strong><%= question.text %></strong></p>
+    <% if (answer = question.answer) %>
+      <p><%= answer.note %></p>
+      <% if answer.error.present? %>
+        <p style="color: red"><%= answer.error %></p>
+      <% elsif answer.sql.present? %>
+        <details><summary>SQL</summary><pre><%= answer.sql %></pre></details>
+        <table border="1">
+          <tr><% answer.shown.first&.each_key do |header| %><th><%= header %></th><% end %></tr>
+          <% answer.shown.each do |row| %>
+            <tr><% row.each_value do |value| %><td><%= value %></td><% end %></tr>
+          <% end %>
+        </table>
+        <% if answer.truncated? %><p>The first <%= Omen.config.maximum_rows %> rows.</p><% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% if inquiry.answering? %><p>Claude is working on it.</p><% end %>
+  <% if inquiry.failed? %><p style="color: red">That reading could not be answered.</p><% end %>
+</div>
+```
+
+`answer.shown` and not `answer.result`: the second is what Postgres handed back, the first is that
+read through Active Record Encryption and through whatever columns Claude asked to be drawn joined.
+An answer with no `sql` is Claude asking something back, and `note` is where it says so.
+
+The index renders that same partial once per row, which is a page of every answer ever given. It
+wants the one-liner instead, which is what `Omen::Reading#to_s` is for -- the first question,
+truncated. In `app/views/inquiries/index.html.erb`, `<%= render inquiry %>` becomes:
+
+```erb
+<%= link_to inquiry, inquiry %>
+```
+
+**Editing a reading is asking the next question.** There is nothing to edit: `update` would write
+a virtual attribute that nothing reads back. A follow-up is `reading.ask`, and it needs no route of
+its own, since PATCH is already there and `_form.html.erb` already posts to it. Drop `:edit` from
+the `before_action` list, delete the `edit` action and `app/views/inquiries/edit.html.erb`, and
+leave `update` as:
+
+```ruby
+def update
+  @inquiry.ask inquiry_params[:question]
+  redirect_to @inquiry
+end
+```
+
+Then `app/views/inquiries/show.html.erb` takes the form back, where it now asks rather than edits,
+and gives up the "Edit this inquiry" link:
+
+```erb
+<%= render "form", inquiry: @inquiry %>
+```
+
+**The answer lands after the response has gone.** A reading is answered in a job, so the redirect
+arrives first and the page is empty on purpose. In development the default `async` adapter runs
+that job in the same process, so nothing has to be started alongside the server; reloading a moment
+later is the whole of seeing an answer. To have it arrive by itself, the load hook from above and
+one line in the view:
+
+```ruby
+# config/initializers/omen.rb
+ActiveSupport.on_load(:omen_reading) { broadcasts_refreshes }
+```
+
+```erb
+<%= turbo_stream_from @inquiry.becomes(Omen::Reading) %>
+```
+
+`becomes`, because a question reaches its reading through the association and hands the job an
+`Omen::Reading`; that is the class it broadcasts as, and a stream named after `Inquiry` would hear
+nothing.
+
+None of this is what makes it work. `ANTHROPIC_API_KEY` has to be resolvable, `db:omen:grant` has
+to have run, and `config/database.yml` has to have the read-only entry that `connects_to` names.
+The two are missed differently, which is why the partial above draws both: a reading that could not
+reach Claude at all is left `failed`, with the class of what went wrong in the log and nothing in
+the page, since a message from that far down may quote a row; a reading whose statement had no role
+to run as is answered, with `Omen::Role::MISCONFIGURED` in `answer.error`.
+
 ## After the first deploy
 
 The narrow role is granted `SELECT` on every table and then refused Omen's own three, which can
