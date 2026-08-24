@@ -7,6 +7,19 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.4.0 - 2026-08-24
+
+* [Breaking change] Prefix every database function this gem creates, and drop the names they
+  had: `eastern` is now `omen_time_zone`, `miles_between` is `omen_miles_between`. A statement
+  stored before this names the old ones, so re-running one fails rather than answering from a
+  function nothing maintains -- an answer already drawn is unaffected, since its rows are stored
+  rather than recomputed
+* [Feature] Create `omen_today()` and tell Claude to build every relative window on it, so a
+  statement kept and run again answers "last month" for the month it is run in rather than the
+  month it was written in. `STABLE`, and a date rather than a timestamp
+* [Feature] Ask for a note that says a sliding window the way the statement says it, and then
+  what it comes to today, so a stored note does not stop being true on the second run
+
 ## 0.3.1 - 2026-08-24
 
 * [Fix] Stop asserting the role attributes only a superuser may set, since `NOSUPERUSER`,

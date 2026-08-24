@@ -59,7 +59,7 @@ class Omen::QueryTest < ActiveSupport::TestCase
   test 'a timestamp read through the function lands on the wall clock Rails draws' do
     booking = bookings :fulfilled
     booking.update_column :created_at, Time.utc(2026, 8, 13, 1, 30) # no callback wanted
-    read = "#{Omen::Instructions::EASTERN}(created_at)"
+    read = "#{Omen::Instructions::TIME_ZONE}(created_at)"
 
     answered = answer "SELECT #{read} AS at FROM bookings WHERE id = #{booking.id}"
 

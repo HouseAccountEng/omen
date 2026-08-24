@@ -23,7 +23,7 @@ class Omen::InstructionsTest < ActiveSupport::TestCase
   test 'a timestamp is read through the one function, with no zone left to work out' do
     said = Omen::Instructions.new.text
 
-    assert_includes said, "#{Omen::Instructions::EASTERN}(created_at)"
+    assert_includes said, "#{Omen::Instructions::TIME_ZONE}(created_at)"
     assert_not_includes said, 'AT TIME ZONE'
     assert_not_includes said, Time.zone.tzinfo.name
     assert_not_includes said, 'Eastern Time'

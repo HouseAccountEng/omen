@@ -21,7 +21,8 @@ module Omen
         "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO #{role}",
         *members.map { |member| "GRANT #{role} TO #{connection.quote_table_name member}" },
         *revoked(connection, role),
-        *Omen::Eastern.statements(connection),
+        *Omen::Renamed.statements,
+        *Omen::TimeZone.statements(connection),
         *Omen::Distance.statements(connection),
       ]
     end

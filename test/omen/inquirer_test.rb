@@ -16,7 +16,7 @@ class Omen::InquirerTest < ActiveSupport::TestCase
       assert_includes said, 'GRANT "omen_inquirer" TO "somebody"'
       assert_includes said, 'ALTER ROLE "omen_inquirer" WITH ' \
                             "#{Omen::Attributes::SETTABLE}"
-      assert(said.any? { |statement| statement.include? Omen::Eastern::ZONE })
+      assert(said.any? { |statement| statement.include? Omen::TimeZone::ZONE })
     end
   end
 

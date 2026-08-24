@@ -31,19 +31,32 @@ have made it, and switching quote style to avoid an apostrophe is how you make i
 
 ## Reading the schema
 
-Timestamps are stored in UTC, and `%{eastern}()` is the one way to read one: it hands the same
+Timestamps are stored in UTC, and `%{zone_fn}()` is the one way to read one: it hands the same
 moment back in the zone the company works in. Wrap every timestamp you touch in it -- in a
 `WHERE`, in an `ORDER BY`, in a `GROUP BY`, and in a column you return -- so a question about a
-day, a week or a month means whole days here: `date_trunc('day', %{eastern}(created_at))`. Never
+day, a week or a month means whole days here: `date_trunc('day', %{zone_fn}(created_at))`. Never
 write a conversion of your own.
 
-Today is %{today}. Resolve every relative date yourself; the query has no idea what "last
-month" means, and it must never ask the database what time it is -- `now()` and
-`current_timestamp` are the clock of the machine, not the date above.
+Today is %{today}, and `%{today_fn}()` is that same day asked of the database. Use it for every
+window a question describes in relation to now:
+
+```sql
+WHERE %{zone_fn}(created_at) >= date_trunc('month', %{today_fn}()) - interval '1 month'
+  AND %{zone_fn}(created_at) <  date_trunc('month', %{today_fn}())
+```
+
+Write it that way rather than working the dates out and putting them in, because a statement is
+kept and run again: one carrying `'2026-08-01'` answers a question nobody asked the second time,
+where one carrying `%{today_fn}()` still answers "last month" whenever it is run. A window a
+question names outright -- "in July 2026", "since the 3rd" -- is not relative to now, and keeps
+its literal dates.
+
+Never `now()`, `current_date` or `current_timestamp`: those are the machine's clock in the
+machine's zone. `%{today_fn}()` is the company's day, and it is a date, so it needs no truncating.
 
 Where a table carries coordinates, the distance between two points in miles is
-`%{miles}(lat1, lng1, lat2, lng2)`, so a radius reads
-`WHERE %{miles}(l.lat, l.lng, u.lat, u.lng) <= 2`. Never write the trigonometry yourself: a
+`%{miles_fn}(lat1, lng1, lat2, lng2)`, so a radius reads
+`WHERE %{miles_fn}(l.lat, l.lng, u.lat, u.lng) <= 2`. Never write the trigonometry yourself: a
 great-circle expression built by hand runs to a dozen nested calls, and one bracket out of place
 either refuses the statement or, worse, measures something else and says nothing about it.
 
@@ -101,6 +114,10 @@ one of those.
 
 Otherwise keep the note to a sentence or two: what the query returns, and any assumption you
 made. These are colleagues reading quickly, not a report.
+
+Say a sliding window the way the statement says it, and then what it comes to today: "in the
+previous calendar month (July 2026)". A note reading "in July 2026" alone stops being true the
+moment the statement is run again.
 
 ## The schema
 

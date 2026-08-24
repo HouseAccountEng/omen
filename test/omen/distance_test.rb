@@ -9,9 +9,9 @@ class Omen::DistanceTest < ActiveSupport::TestCase
     ApplicationRecord.with_connection do |connection|
       Omen::Distance.statements(connection).each { |statement| connection.execute statement }
       north, south, none = connection.select_rows(<<~SQL).first
-        SELECT round(miles_between(0, 0, 1, 0)::numeric, 2),
-               round(miles_between(1, 0, 0, 0)::numeric, 2),
-               miles_between(0, 0, 0, 0)
+        SELECT round(omen_miles_between(0, 0, 1, 0)::numeric, 2),
+               round(omen_miles_between(1, 0, 0, 0)::numeric, 2),
+               omen_miles_between(0, 0, 0, 0)
       SQL
 
       assert_equal 69.09, north.to_f
@@ -27,7 +27,7 @@ class Omen::DistanceTest < ActiveSupport::TestCase
       connection.execute Omen::Distance.haversine connection
 
       measured = connection.select_value <<~SQL
-        SELECT round(miles_between(40.7::numeric, -74.0::numeric, 40.8, -74.0)::numeric, 1)
+        SELECT round(omen_miles_between(40.7::numeric, -74.0::numeric, 40.8, -74.0)::numeric, 1)
       SQL
 
       assert_equal 6.9, measured.to_f
@@ -39,7 +39,7 @@ class Omen::DistanceTest < ActiveSupport::TestCase
     ApplicationRecord.with_connection do |connection|
       connection.execute Omen::Distance.haversine connection
 
-      assert_nil connection.select_value 'SELECT miles_between(40.7, NULL, 40.8, -74.0)'
+      assert_nil connection.select_value 'SELECT omen_miles_between(40.7, NULL, 40.8, -74.0)'
     end
   end
 end

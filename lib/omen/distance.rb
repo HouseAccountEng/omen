@@ -1,6 +1,6 @@
 module Omen
   # The database function a reading measures a distance with. Created by the rake task rather
-  # than by a migration, for the reason Omen::Eastern is: Rails' :ruby schema format dumps no
+  # than by a migration, for the reason Omen::TimeZone is: Rails' :ruby schema format dumps no
   # functions, so db:schema:load would drop one a migration had made.
   module Distance
     # The earth's mean radius in miles, which is what makes the answer miles.

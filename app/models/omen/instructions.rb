@@ -4,10 +4,14 @@ class Omen::Instructions
   PROSE = File.expand_path 'instructions.md', __dir__
 
   # The database function a stored timestamp is read through, created by the gem's rake task.
-  EASTERN = 'eastern'
+  # Every one of these is prefixed, since `today` especially is a name a host may want itself.
+  TIME_ZONE = 'omen_time_zone'
+
+  # The database function that answers what day it is where the company works.
+  TODAY = 'omen_today'
 
   # The database function a distance in miles is measured with, created by the same task.
-  MILES = 'miles_between'
+  MILES = 'omen_miles_between'
 
   # The one shape a reply may take: both keys required, and no others admitted.
   ANSWER = {
@@ -36,7 +40,8 @@ class Omen::Instructions
   # Today's date is said out loud because "last month" is Claude's to resolve, and it has no clock.
   # @return [String] the prose, with the schema, the subclasses and the host's notes filled in.
   def text
-    format File.read(PROSE), today: Date.current.to_fs(:long), eastern: EASTERN, miles: MILES,
+    format File.read(PROSE), today: Date.current.to_fs(:long), zone_fn: TIME_ZONE,
+      today_fn: TODAY, miles_fn: MILES,
       schema: schema, types: types, readable: readable, refused: refused,
       notes: Omen.config.notes
   end

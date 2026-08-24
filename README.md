@@ -15,14 +15,15 @@ draws the answer (including encrypted attributes) for whoever asked. Nothing tha
 gem install omen
 ```
 
-Or, in a `Gemfile`, pinned to the current major:
+Or, in a `Gemfile`, pinned to the current minor while this is still below 1.0:
 
 ```ruby
-gem 'omen', '~> 0.2'
+gem 'omen', '~> 0.4.0'
 ```
 
-Omen follows [Semantic Versioning](https://semver.org), so `~> major.minor` means `bundle update`
-never crosses a breaking change.
+Omen follows [Semantic Versioning](https://semver.org) from 1.0 onwards. Until then a release may
+break whatever it likes, so the pin stops short of the next minor: `~> 0.4.0` takes every fix in
+0.4 and nothing beyond it.
 
 ## Requirements
 
@@ -50,18 +51,23 @@ never crosses a breaking change.
   question ever asked.
 </details>
 
-**Two database functions** 
+**Three database functions, all prefixed** 
 
 <details>
-  <summary>A timestamp and a distance are read through a function, never an expression. </summary>
-  `db:omen:grant` creates both. `eastern()` hands a stored timestamp back in the zone the company
-  works in, so every date in the prompt means the same whole days, and
-  `miles_between(lat1, lng1, lat2, lng2)` answers a great-circle distance in miles. The prompt
-  names each and forbids writing either by hand: a conversion assembled per query drifts, and a
-  great-circle expression runs to a dozen nested calls that a reply balances by hand and gets
-  wrong. Both are `LANGUAGE sql IMMUTABLE` and executable by anyone, so neither needs a grant.
-  An app in another zone renames the first; an app whose tables carry no coordinates simply never
-  calls the second. Neither can be a migration: Rails' `:ruby` schema format dumps no functions,
+  <summary>A timestamp, a day and a distance go through a function, never an expression. </summary>
+  `db:omen:grant` creates all three, each named `omen_` so that none of them can take a name an
+  app wanted for itself -- `today` especially. `omen_time_zone()` hands a stored timestamp back in
+  the zone the company works in, so every date means the same whole days. `omen_today()` answers
+  what day it is there, and the prompt builds every relative window on it, so a statement that is
+  kept and run again answers "last month" for the month it is run in rather than the month it was
+  written in. `omen_miles_between(lat1, lng1, lat2, lng2)` answers a great-circle distance in
+  miles. The prompt names each and forbids writing any of them by hand: a conversion assembled per
+  query drifts, and a great-circle expression runs to a dozen nested calls that a reply balances
+  by hand and gets wrong. The first and last are `IMMUTABLE`; `omen_today()` is `STABLE`, because
+  it reads the clock and an immutable function of the clock may be folded to a constant -- which
+  is exactly the sliding this one exists to keep. All are executable by anyone, so none needs a
+  grant. An app in another zone renames the first two; an app whose tables carry no coordinates
+  never calls the last. None can be a migration: Rails' `:ruby` schema format dumps no functions,
   so `db:schema:load` would drop one a migration had made.
 </details>
 
