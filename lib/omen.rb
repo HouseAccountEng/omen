@@ -1,9 +1,11 @@
 require 'active_job/performs'
 require 'anthropic'
 
+require 'omen/attributes'
 require 'omen/config'
 require 'omen/distance'
 require 'omen/eastern'
+require 'omen/grants'
 require 'omen/inquirer'
 require 'omen/requirements'
 require 'omen/version'

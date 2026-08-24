@@ -7,6 +7,14 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.3.1 - 2026-08-24
+
+* [Fix] Stop asserting the role attributes only a superuser may set, since `NOSUPERUSER`,
+  `NOBYPASSRLS` and `NOREPLICATION` are refused outright by every managed database -- a role is
+  created without them anyway, so they are read back and warned about rather than set
+* [Fix] Run each statement of the grant in a savepoint of its own, so one a database refuses no
+  longer discards the grants, the revocations and both functions behind it
+
 ## 0.3.0 - 2026-08-24
 
 * [Feature] Create a `miles_between(lat1, lng1, lat2, lng2)` function and name it in the prompt,

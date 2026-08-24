@@ -3,15 +3,24 @@ module Omen
   # It needs no database.yml entry of its own: NOLOGIN, it is a privilege container reached
   # with SET LOCAL ROLE and never connected as.
   module Inquirer
-    # What this role may never be: a superuser bypasses GRANT outright.
-    ATTRIBUTES = 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOREPLICATION'
-
     # Whom to ask, since the role a host reads through is one this gem has no name for.
     WHOEVER = 'SELECT current_user'
 
     # Said on the way through installation step one, where a host has yet to declare the role.
     UNGRANTED = 'No %{role} connection is configured, so nothing was granted to whatever ' \
                 'reads through it. Run this again once config/database.yml names one.'
+
+    # Said where the role could not be made: a managed database never grants CREATEROLE.
+    UNMADE = 'Could not make %{role}, so every reading will say this app is misconfigured. Ask ' \
+             'for that role, NOLOGIN, granted SELECT on every table but %{tables}.'
+
+    # Said per statement, since the grants, the revocations and the functions need nothing from
+    # one another and one refusal should not discard the rest.
+    REFUSED = 'Skipped, refused by the database: %{statement} (%{error})'
+
+    # Said where a role that already existed is one a reading should not be able to reach through.
+    DANGEROUS = '%{role} holds %{held}. This gem cannot take that away without being a superuser ' \
+                'itself, so ask for it to be taken away.'
 
     # Creates the role and the function, on every database this environment prepares.
     # @return [void]
@@ -37,12 +46,26 @@ module Omen
       read_by = reader
       warn UNGRANTED % { role: Omen.config.reading_role } unless read_by
       members = [ read_by, connection.select_value(WHOEVER) ].compact
-      statements(connection, members).each { |statement| connection.execute statement }
-      puts "Granted SELECT on #{connection.current_database} to #{Omen.config.narrow_role}"
+      Grants.statements(connection, members).each { |statement| attempted connection, statement }
+      role = Omen.config.narrow_role
+      return warn UNMADE % { role: role, tables: Omen.tables.to_sentence } unless
+        Attributes.exists? connection
+
+      held = Attributes.dangerous connection
+      warn DANGEROUS % { role: role, held: held.to_sentence } if held.any?
+      puts "Granted SELECT on #{connection.current_database} to #{role}"
+    end
+
+    # One statement at a time, so a database that refuses one still runs the others -- and each
+    # inside a savepoint of its own, since a refusal inside a transaction refuses everything
+    # after it too, and this task is as likely to be run from a console as from a deploy.
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param statement [String] one of the statements Omen::Grants builds.
+    # @return [void]
+    def self.attempted(connection, statement)
+      connection.transaction(requires_new: true) { connection.execute statement }
     rescue ActiveRecord::StatementInvalid => error
-      warn "Could not make #{Omen.config.narrow_role}, so every reading will say this app is " \
-           'misconfigured. Ask for that role, NOLOGIN, granted SELECT on every table but ' \
-           "#{Omen.tables.to_sentence}: #{error.message}"
+      warn REFUSED % { statement: statement.squish, error: error.message.lines.first.strip }
     end
 
     # Discovered rather than named: SET LOCAL ROLE needs the connecting role to be a member of
@@ -54,39 +77,6 @@ module Omen
       end
     rescue ActiveRecord::ConnectionNotDefined, ActiveRecord::ConnectionNotEstablished
       nil
-    end
-
-    # DDL, which Active Record has no expression for, and not a query.
-    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
-    # @param members [Array<String>] the roles that may SET LOCAL ROLE to this one. The owner
-    #   running the task is one of them, and matters in tests, where Rails swaps the reading
-    #   pool for the writing one and the test connection is the owner.
-    # @return [Array<String>] the statements to run, in order.
-    def self.statements(connection, members)
-      role = connection.quote_table_name Omen.config.narrow_role
-      [
-        'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = ' \
-          "#{connection.quote Omen.config.narrow_role}) THEN CREATE ROLE #{role} NOLOGIN; " \
-          'END IF; END $$',
-        "ALTER ROLE #{role} WITH NOLOGIN #{ATTRIBUTES}",
-        "GRANT USAGE ON SCHEMA public TO #{role}",
-        "GRANT SELECT ON ALL TABLES IN SCHEMA public TO #{role}",
-        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO #{role}",
-        *members.map { |member| "GRANT #{role} TO #{connection.quote_table_name member}" },
-        *revoked(connection, role),
-        *Eastern.statements(connection),
-        *Distance.statements(connection),
-      ]
-    end
-
-    # Intersected, so a bare db:create with no table yet to revoke on is not a failure.
-    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
-    # @param role [String] the role to hide this feature's own tables from.
-    # @return [Array<String>] one REVOKE per table there is.
-    def self.revoked(connection, role)
-      (connection.tables & Omen.tables).map do |table|
-        "REVOKE SELECT ON #{connection.quote_table_name table} FROM #{role}"
-      end
     end
   end
 end

@@ -8,15 +8,31 @@ class Omen::InquirerTest < ActiveSupport::TestCase
 
   test 'the role is refused the tables a reading is kept in, and granted to whoever reads' do
     ApplicationRecord.with_connection do |connection|
-      said = Omen::Inquirer.statements connection, %w[ somebody ]
+      said = Omen::Grants.statements connection, %w[ somebody ]
 
       Omen.tables.each do |table|
         assert_includes said, %(REVOKE SELECT ON "#{table}" FROM "omen_inquirer")
       end
       assert_includes said, 'GRANT "omen_inquirer" TO "somebody"'
-      assert_includes said, 'ALTER ROLE "omen_inquirer" WITH NOLOGIN ' \
-                            "#{Omen::Inquirer::ATTRIBUTES}"
+      assert_includes said, 'ALTER ROLE "omen_inquirer" WITH ' \
+                            "#{Omen::Attributes::SETTABLE}"
       assert(said.any? { |statement| statement.include? Omen::Eastern::ZONE })
+    end
+  end
+
+  # A managed database refuses `NOSUPERUSER` outright -- only a superuser may say it -- and that
+  # one refusal used to discard the grants, the revocations and both functions behind it. The
+  # refusal is spelled differently here, since the user running these tests is a superuser and
+  # would be allowed: what is being tested is surviving a refusal, not causing one.
+  test 'a statement the database refuses does not discard the ones after it' do
+    ApplicationRecord.with_connection do |connection|
+      said = capture_io do
+        Omen::Inquirer.attempted connection, 'SELECT 1 FROM a_table_nobody_made'
+        Omen::Inquirer.attempted connection, 'CREATE TEMPORARY TABLE omen_probe (id int)'
+      end
+
+      assert_match(/Skipped, refused by the database/, said.last)
+      assert_equal 0, connection.select_value('SELECT count(*) FROM omen_probe')
     end
   end
 

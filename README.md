@@ -147,6 +147,10 @@ usually does — the role is made by hand and the revocation with it:
 REVOKE SELECT ON omen_readings, omen_questions, omen_answers FROM omen_inquirer;
 ```
 
+A managed database also refuses `ALTER ROLE ... NOSUPERUSER`, since only a superuser may say it.
+Omen skips that statement and carries on rather than stopping, then reads the role back and says
+so if it holds `SUPERUSER`, `BYPASSRLS` or `REPLICATION` -- which a role it created never does.
+
 A missed table there means Claude is shown the log of every question ever asked.
 
 ## License
