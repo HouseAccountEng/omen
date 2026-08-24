@@ -7,6 +7,14 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.2.2 - 2026-08-24
+
+* [Fix] Run a load hook as each model loads, so a host declares `broadcasts_refreshes` and the
+  rest through `ActiveSupport.on_load :omen_reading` rather than by naming the class while
+  initializers run, which loaded Active Record before Rails was up
+* [Fix] Read the adapter through the `:active_record` load hook, so a boot that never touches
+  the database is not the boot that loads it early
+
 ## 0.2.1 - 2026-08-24
 
 * [Fix] Declare `eastern()` over an instant as well as a stored timestamp, so a reply that

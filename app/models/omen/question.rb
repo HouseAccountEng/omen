@@ -11,3 +11,5 @@ class Omen::Question < Omen.config.record
   # @return [String] the side of the conversation this was said on, in the words the API uses.
   def role = 'user'
 end
+
+ActiveSupport.run_load_hooks :omen_question, Omen::Question

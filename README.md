@@ -119,7 +119,7 @@ Two things a subclass cannot reach, because the gem's own class is what a job lo
 line in the host does it:
 
 ```ruby
-Rails.application.config.to_prepare { Omen::Reading.broadcasts_refreshes }
+ActiveSupport.on_load(:omen_reading) { broadcasts_refreshes }
 ```
 
 ## After the first deploy

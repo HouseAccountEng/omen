@@ -35,3 +35,5 @@ class Omen::Answer < Omen.config.record
   # @return [Boolean] whether the answer ran past what is shown.
   def truncated? = result.size > Omen.config.maximum_rows
 end
+
+ActiveSupport.run_load_hooks :omen_answer, Omen::Answer

@@ -16,3 +16,5 @@ class Omen::Reading < Omen.config.record
   # @return [String] the default representation (used in views).
   def to_s = questions.first&.text.to_s.truncate 80
 end
+
+ActiveSupport.run_load_hooks :omen_reading, Omen::Reading
