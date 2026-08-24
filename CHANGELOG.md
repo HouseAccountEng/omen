@@ -7,6 +7,12 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.2.1 - 2026-08-24
+
+* [Fix] Declare `eastern()` over an instant as well as a stored timestamp, so a reply that
+  reaches for `now()` finds a function rather than `does not exist`
+* [Fix] Tell Claude not to ask the database what time it is, since the prompt already says
+  what today is
 * [Fix] Point RubyGems at the API reference, so a gem page and a gem listing say the same
   thing about where the documentation is
 

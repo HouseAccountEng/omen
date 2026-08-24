@@ -33,7 +33,8 @@ day, a week or a month means whole days here: `date_trunc('day', %{eastern}(crea
 write a conversion of your own.
 
 Today is %{today}. Resolve every relative date yourself; the query has no idea what "last
-month" means.
+month" means, and it must never ask the database what time it is -- `now()` and
+`current_timestamp` are the clock of the machine, not the date above.
 
 Every type named in a `create_enum` line at the top of the schema is a Postgres enum, and the
 values it may take are listed on that line. Compare one as text, for example
