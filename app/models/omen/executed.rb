@@ -18,7 +18,7 @@ private
   end
 
   def answer(question)
-    reply = Omen::Conversation.new(asked_up_to question).advance
+    reply = Omen::Conversation.new(asked_up_to(question), self).advance
     increment! :input_usage, reply[:input_usage]
     increment! :output_usage, reply[:output_usage]
     execute question.create_answer!(**reply)
@@ -29,7 +29,7 @@ private
   def execute(answered)
     return if answered.sql.blank?
 
-    answered.update! Omen::Query.new(answered.sql).answer
+    answered.update! Omen::Query.new(answered.sql, self).answer
   rescue Omen::Role::Unavailable => error
     answered.update! error: error.message
   rescue StandardError => error

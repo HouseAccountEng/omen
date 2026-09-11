@@ -8,8 +8,12 @@ class Omen::Role
                   'the read-only role a statement runs as.'
 
   # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] the one to switch.
-  def initialize(connection)
+  # @param name [String] the role to enter.
+  # @param settings [Hash] what to set first, which a row policy may read to scope the rows.
+  def initialize(connection, name, settings = {})
     @connection = connection
+    @name = name
+    @settings = settings
   end
 
   # Given up before anything of ours runs; a statement Postgres refused rolls it back instead.
@@ -21,9 +25,17 @@ class Omen::Role
 
 private
 
+  # Set before the role rather than after it, so a setting is written by the role that holds
+  # the rows rather than by the one that is about to be refused them.
   def enter
-    @connection.execute "SET LOCAL ROLE #{@connection.quote_table_name Omen.config.narrow_role}"
+    @settings.each { |name, value| set name, value }
+    @connection.execute "SET LOCAL ROLE #{@connection.quote_table_name @name}"
   rescue ActiveRecord::StatementInvalid
     raise Unavailable, MISCONFIGURED
+  end
+
+  # Through set_config, since a name carrying a dot is not one SET LOCAL can be given quoted.
+  def set(name, value)
+    @connection.raw_connection.exec_params 'SELECT set_config($1, $2, true)', [ name, value.to_s ]
   end
 end

@@ -59,6 +59,6 @@ private
   def answered(sql, combine: [])
     spoken = { sql: sql, note: 'Whatever it is.', combine: combine }.to_json
     Omen::Answer.new content: [ { 'type' => 'text', 'text' => spoken } ],
-      **Omen::Query.new(sql).answer
+      **Omen::Query.new(sql, Omen::Reading.new).answer
   end
 end

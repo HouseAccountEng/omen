@@ -4,8 +4,10 @@ class Omen::Query
   UTC = { oid: 1114, name: 'timestamp', format: 0 }
 
   # @param sql [String] the statement Claude answered with.
-  def initialize(sql)
+  # @param reading [Omen::Reading] the one it answers, which says what it may read.
+  def initialize(sql, reading)
     @sql = sql
+    @reading = reading
   end
 
   # A savepoint, so a statement Postgres rejects leaves the surrounding transaction usable.
@@ -23,9 +25,11 @@ private
   def record = Omen.config.record
 
   def run(connection)
-    answered = Omen::Role.new(connection).around { executed connection }
+    answered = role(connection).around { executed connection }
     { result: answered.to_a.first(cap), provenance: Omen::Column.of(answered, connection) }
   end
+
+  def role(connection) = Omen::Role.new connection, @reading.runs_as, @reading.settings
 
   def executed(connection)
     raw = connection.raw_connection

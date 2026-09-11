@@ -1,4 +1,4 @@
-# Everything Claude is told before a question: the prose, the schema, and the shape of a reply.
+# Everything Claude is told before a question: the prose, and the schema it may write against.
 class Omen::Instructions
   # The prose, kept beside this class so it reads as prose rather than as a string.
   PROSE = File.expand_path 'instructions.md', __dir__
@@ -13,28 +13,16 @@ class Omen::Instructions
   # The database function a distance in miles is measured with, created by the same task.
   MILES = 'omen_miles_between'
 
-  # The one shape a reply may take: both keys required, and no others admitted.
-  ANSWER = {
-    type: 'object', additionalProperties: false, required: %w[ sql note combine ],
-    properties: {
-      sql: { type: 'string',
-             description: 'The one PostgreSQL SELECT that answers the question, or ' \
-                          'empty to ask something first.', },
-      note: { type: 'string',
-              description: 'A sentence or two: what the query returns and any ' \
-                           'assumption made. If sql is empty, the question you ' \
-                           'need answered first.', },
-      combine: Omen::Combination::SCHEMA,
-    },
-  }
-
-  # @return [Hash] what a reply is constrained to, so that it always parses.
-  def self.output_config = { format_: { type: :json_schema, schema: ANSWER } }
-
   # Cached for an hour: the schema is thousands of tokens, and refining sends it again.
+  # @param reading [Omen::Reading] the one being answered, which says what it may read.
   # @return [Array<Hash>] the one system block of a request.
-  def self.block
-    [ { type: 'text', text: new.text, cache_control: { type: 'ephemeral', ttl: '1h' } } ]
+  def self.block(reading)
+    [ { type: 'text', text: new(reading).text, cache_control: { type: 'ephemeral', ttl: '1h' } } ]
+  end
+
+  # @param reading [Omen::Reading] the one being answered, which says what it may read.
+  def initialize(reading)
+    @reading = reading
   end
 
   # Today's date is said out loud because "last month" is Claude's to resolve, and it has no clock.
@@ -43,12 +31,12 @@ class Omen::Instructions
     format File.read(PROSE), today: Date.current.to_fs(:long), zone_fn: TIME_ZONE,
       today_fn: TODAY, miles_fn: MILES,
       schema: schema, types: types, readable: readable, refused: refused,
-      notes: Omen.config.notes
+      notes: @reading.notes
   end
 
 private
 
-  def schema = Omen::Schema.new.text
+  def schema = Omen::Schema.new(@reading.runs_as).text
 
   def types
     Rails.application.eager_load!

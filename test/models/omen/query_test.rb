@@ -70,5 +70,5 @@ class Omen::QueryTest < ActiveSupport::TestCase
 
 private
 
-  def answer(sql) = Omen::Query.new(sql).answer
+  def answer(sql) = Omen::Query.new(sql, Omen::Reading.new).answer
 end

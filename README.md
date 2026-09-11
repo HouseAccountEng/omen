@@ -54,6 +54,40 @@ the statement Claude wrote, the rows it found, and which of their headers held a
 column. `rails g omen:pages` writes the pages that draw all of that, into your app, for you to
 keep or replace.
 
+## Narrowing a reading to one owner's rows
+
+A reading answers with whatever its role may read, so an app that lets a customer ask about
+their own data narrows the role rather than the prompt:
+
+```sql
+CREATE ROLE provider_inquirer NOLOGIN;
+GRANT USAGE ON SCHEMA public TO provider_inquirer;
+GRANT SELECT (id, name) ON providers TO provider_inquirer; -- never the whole row
+ALTER TABLE providers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY provider_inquirer ON providers FOR SELECT TO provider_inquirer
+  USING (id = NULLIF(current_setting('omen.provider_id', true), '')::bigint);
+```
+
+```ruby
+class Consult < Omen::Reading
+  belongs_to :provider
+
+  def runs_as = 'provider_inquirer'
+  def settings = { 'omen.provider_id' => provider_id }
+  def notes = Rails.root.join('config/provider_notes.md').read
+end
+```
+
+Both are set for the statement and gone with it: `SET LOCAL` inside the transaction the
+statement runs in. What that buys is that it does not matter what SQL Claude writes -- a join, a
+`WITH`, a `UNION`, a subquery on a table it was never shown -- every path resolves through the
+policy, and rows outside it do not exist for that role. The schema Claude is shown narrows with
+the grants, so it is never told about a table or a column it would be refused.
+
+`NULLIF` is not decoration: a reading that names nobody sets the empty string, and a policy
+reading it straight would raise rather than answer nothing. Write the policy so that no owner
+means no rows.
+
 ## Everything else
 
 [INSTRUCTIONS.md](INSTRUCTIONS.md) has the reasoning: why Postgres and no other adapter, what

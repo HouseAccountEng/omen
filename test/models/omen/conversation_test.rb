@@ -53,10 +53,10 @@ class Omen::ConversationTest < ActiveSupport::TestCase
     reading = Omen::Reading.create! question: 'How many?'
     2.times { |asked| answered reading; reading.ask "Since March, then (#{asked})." }
 
-    Omen::Instructions.block # so that reading the schema is not what the count catches
+    Omen::Instructions.block reading # so that reading the schema is not what the count catches
 
     assert_queries_count 2 do
-      Omen::Conversation.new(reading.questions).advance
+      Omen::Conversation.new(reading.questions, reading).advance
     end
   end
 
@@ -87,7 +87,7 @@ class Omen::ConversationTest < ActiveSupport::TestCase
 
 private
 
-  def advance(reading) = Omen::Conversation.new(reading.questions).advance
+  def advance(reading) = Omen::Conversation.new(reading.questions, reading).advance
 
   def answered(reading)
     reading.questions.where.missing(:answer).first.create_answer!(**advance(reading))

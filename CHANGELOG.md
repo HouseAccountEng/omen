@@ -7,6 +7,18 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Feature] Narrow a reading to one owner's rows: a subclass names the Postgres role its
+  statement runs as and the settings set before it, so a policy on each table admits the rows
+  that owner's own. Postgres holds the boundary, and every statement Claude can write resolves
+  through it
+* [Feature] Show Claude the schema the role may actually read: a table none of whose columns it
+  holds `SELECT` on goes, and so does a column a column-level grant left out, so the prompt
+  follows the grants rather than restating them
+* [Breaking change] `Omen::Query.new` and `Omen::Conversation.new` take the reading they answer,
+  and `Omen::Instructions.block` and `Omen::Schema.new` take what it says they may read
+* [Breaking change] The shape a reply is held to is `Omen::Reply::SHAPE`, and the config that
+  sends it `Omen::Reply.output_config`, both moved off `Omen::Instructions`
+
 * [Feature] Write the pages a reading is seen through with `rails g omen:pages [NAME]`: a
   subclass, a controller, three views and a route, all of them the host's from the moment they
   land. It descends from `ApplicationController` rather than being mounted, so whatever guards

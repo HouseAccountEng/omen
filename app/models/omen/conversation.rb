@@ -15,16 +15,18 @@ class Omen::Conversation
 
   # @param questions [ActiveRecord::Relation] the questions asked so far, oldest first, up to
   #   and including the one being answered.
-  def initialize(questions)
+  # @param reading [Omen::Reading] the one they were asked of, which says what it may read.
+  def initialize(questions, reading)
     @questions = questions
+    @reading = reading
   end
 
   # No tools are sent, by design: a tool_result block would be rows travelling back to Claude.
   # @return [Hash] the blocks Claude answered with, why it stopped, and what it cost.
   def advance
     said = client.messages.create model: Omen.config.claude_model, max_tokens: MAX_TOKENS,
-      system_: Omen::Instructions.block, messages: messages,
-      output_config: Omen::Instructions.output_config
+      system_: Omen::Instructions.block(@reading), messages: messages,
+      output_config: Omen::Reply.output_config
 
     { content: said.content.map { |block| block.to_h.deep_stringify_keys },
       stop_reason: said.stop_reason, input_usage: said.usage.input_tokens,
