@@ -2,7 +2,7 @@ require 'rails/generators/active_record'
 
 module Omen
   module Generators
-    # Everything installing this gem writes into a host: three migrations and one initializer.
+    # Everything installing this gem writes into a host: its migrations and one initializer.
     # Not the roles or the database function, which are a rake task, because a copy of those
     # would drift from what the gem goes on to expect and nothing would detect it.
     class InstallGenerator < Rails::Generators::Base

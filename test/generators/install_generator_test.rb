@@ -7,12 +7,13 @@ class Omen::Generators::InstallGeneratorTest < Rails::Generators::TestCase
   destination Rails.root.join 'tmp/generated'
   setup :prepare_destination
 
-  test 'an install hands the host the three migrations, under timestamps of its own' do
+  test 'an install hands the host every migration, under timestamps of its own' do
     run_generator
 
     assert_migration 'db/migrate/create_omen_readings.rb', /create_enum :omen_status/
     assert_migration 'db/migrate/create_omen_questions.rb', /to_table: :omen_readings/
     assert_migration 'db/migrate/create_omen_answers.rb', /index: { unique: true }/
+    assert_migration 'db/migrate/add_type_to_omen_readings.rb', /add_column :omen_readings/
   end
 
   test 'an install writes an initializer naming every setting and demanding none of them' do

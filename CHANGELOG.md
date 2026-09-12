@@ -7,6 +7,8 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.5.0 - 2026-09-11
+
 * [Breaking change] `omen_readings` carries a `type` column, so a host's two kinds of reading
   are two classes rather than two names for the same rows. Without it the class that loaded a
   row decided what it could read: a customer's own reading, loaded as the host's admin one, ran

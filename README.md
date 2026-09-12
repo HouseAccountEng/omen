@@ -18,13 +18,13 @@ statement returned is ever sent back.
 In your `Gemfile`, pinned to the current minor while this is still below 1.0:
 
 ```ruby
-gem 'omen', '~> 0.4.0'
+gem 'omen', '~> 0.5.0'
 ```
 
 Then four commands:
 
 ```sh
-bin/rails g omen:install   # three migrations and an initializer you may delete
+bin/rails g omen:install   # the migrations and an initializer you may delete
 bin/rails db:migrate       # omen_readings, omen_questions, omen_answers
 bin/rails db:omen:grant    # the read-only role a statement runs as, and three functions
 bin/rails g omen:pages     # a model, a controller, three views and a route, all yours

@@ -80,7 +80,7 @@ break whatever it likes, so the pin stops short of the next minor: `~> 0.4.0` ta
 Installing by adding to your Gemfile and running three commands in your terminal: 
 
 ```sh
-bin/rails g omen:install # adds three migrations + an initializer you can delete
+bin/rails g omen:install # adds the migrations + an initializer you can delete
 bin/rails db:migrate     # creates the tables `omen_readings`, `omen_questions`, `omen_answers`
 bin/rails db:omen:grant  # set the read-only role statements run as
 ```
