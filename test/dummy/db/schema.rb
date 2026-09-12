@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_21_120002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_12_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -81,6 +81,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_120002) do
     t.integer "questions_count", default: 0, null: false
     t.enum "status", default: "unstarted", null: false, enum_type: "omen_status"
     t.datetime "updated_at", null: false
+    t.string "type"
+    t.index ["type"], name: "index_omen_readings_on_type"
   end
 
   create_table "providers", force: :cascade do |t|

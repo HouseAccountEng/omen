@@ -72,6 +72,17 @@ class Omen::ScopedTest < ActiveSupport::TestCase
     end
   end
 
+  # Without a type column the same row answered as whatever class loaded it: a host's admin
+  # reading and a customer's own are one table, and loading one as the other ran its statement
+  # as the wider role. What a row is, and so what it may read, is the row's own to say.
+  test 'a reading of one kind is not found as another, nor answered as one' do
+    consult = Consult.create! question: 'What have I got?', provider_id: providers(:local).id
+
+    assert_equal 'Consult', consult.reload.type
+    assert_raises(ActiveRecord::RecordNotFound) { Omen::Reading.where(type: nil).find consult.id }
+    assert_equal Consult.narrowing.role, Omen::Reading.find(consult.id).runs_as
+  end
+
   test 'widening takes it back off, and the role reads everything it was granted again' do
     assert_output(/Widened .* back out of #{Consult.narrowing.role}/) { Omen::Inquirer.widen }
 

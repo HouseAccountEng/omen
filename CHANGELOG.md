@@ -7,6 +7,11 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Breaking change] `omen_readings` carries a `type` column, so a host's two kinds of reading
+  are two classes rather than two names for the same rows. Without it the class that loaded a
+  row decided what it could read: a customer's own reading, loaded as the host's admin one, ran
+  its statement as the wider role. Rows written before this migration have no type and come
+  back as `Omen::Reading`, so a host with subclasses backfills its own -- one `UPDATE` per kind
 * [Feature] Narrow a reading to one owner's rows. A subclass declares what its audience may
   read -- `narrows 'the_role', by: :provider_id, own: { 'bookings' => 'provider_id = %{owner}' },
   whole: %w[ zips ]` -- and `db:omen:grant` writes the role, the column grants and the policies.

@@ -16,15 +16,16 @@ module Omen
 
     # @param role [String] the Postgres role a reading of this audience runs as.
     # @param by [Symbol] the column of the reading that says whose rows these are.
-    # @param own [Hash] every table it reads rows of, to what makes a row its own.
+    # @param own [Hash] every table it reads rows of, to what makes a row its own. A table is
+    #   named either way, since a host writing one of these writes symbols or strings by habit.
     # @param whole [Array<String>] the tables it reads whole, nobody's in particular.
     # @param except [Regexp, nil] the columns of those it may not read, a counter over everybody
     #   being the case this exists for: it counts every owner rather than this one.
     def initialize(role:, by:, own:, whole: [], except: nil)
       @role = role
       @by = by
-      @own = own
-      @whole = whole
+      @own = own.transform_keys(&:to_s)
+      @whole = whole.map(&:to_s)
       @except = except
     end
 

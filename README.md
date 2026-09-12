@@ -54,6 +54,17 @@ the statement Claude wrote, the rows it found, and which of their headers held a
 column. `rails g omen:pages` writes the pages that draw all of that, into your app, for you to
 keep or replace.
 
+## Two kinds of reading
+
+`omen_readings` carries a `type`, so a subclass of `Omen::Reading` is a kind of reading rather
+than a second name for every row: `Inquiry.count` counts inquiries, and a row answers as what it
+was written as, whatever class asks for it. That last part is what keeps a narrowing honest --
+what a reading may read is the row's own to say, not the caller's.
+
+Upgrading an app that already has readings: they were written without a type, so they come back
+as `Omen::Reading` until you say what they were. One `UPDATE omen_readings SET type = 'Inquiry'`
+per kind, in a migration of your own.
+
 ## Narrowing a reading to one owner's rows
 
 A reading answers with whatever its role may read, so an app that lets a customer ask about

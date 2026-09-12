@@ -38,10 +38,13 @@ private
 
   def schema = Omen::Schema.new(@reading.runs_as).text
 
+  # This gem's own tables are told apart by a type column too, and are hidden from the schema,
+  # so naming their subclasses here would say the one thing the schema is careful not to.
   def types
     Rails.application.eager_load!
     Omen.config.record.descendants.select(&:finder_needs_type_condition?)
-      .group_by(&:table_name).sort.map { |table, kinds| "- `#{table}`: #{named kinds}" }.join "\n"
+      .group_by(&:table_name).except(*Omen.tables).sort
+      .map { |table, kinds| "- `#{table}`: #{named kinds}" }.join "\n"
   end
 
   def named(kinds) = kinds.map(&:name).sort.map { |name| "`#{name}`" }.join ', '
