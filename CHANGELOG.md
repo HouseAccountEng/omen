@@ -7,6 +7,9 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Breaking change] Carry five turns of a thread rather than twenty, which is what a question
+  usually leans on and what a thread nobody clears can afford to send again every time
+
 ## 0.6.0 - 2026-09-11
 
 * [Feature] Carry only the last turns of a thread into the next question, `Omen.config.remembered`

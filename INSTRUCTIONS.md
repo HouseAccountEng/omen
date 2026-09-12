@@ -121,7 +121,7 @@ writes it with each line commented out, as the list of what there is to say.
 | Setting | Default |
 |---|---|
 | `narrow_role` | `'omen_inquirer'` |
-| `remembered` | `20`, the turns of a thread that travel with the next question |
+| `remembered` | `5`, the turns of a thread that travel with the next question |
 | `notes` | none, so the prompt says nothing about this app beyond its schema |
 
 ## What a host builds on top

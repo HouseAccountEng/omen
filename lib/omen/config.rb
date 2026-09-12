@@ -29,7 +29,7 @@ module Omen
       @narrow_role = 'omen_inquirer'
       @claude_model = 'claude-opus-5'
       @maximum_rows = 100
-      @remembered = 20
+      @remembered = 5
       @schema_path = 'db/schema.rb'
     end
 

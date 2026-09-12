@@ -17,6 +17,7 @@ class Omen::ReadingRunTest < ActiveSupport::TestCase
 
   # A thread nobody clears would otherwise carry its whole history into every question.
   test 'a question carries the turns before it, and only as many as a host remembers' do
+    remembered = Omen.config.remembered
     Omen.config.remembered = 1
     stub_claude(*Array.new(2) { claude_answers note: 'Which days did you mean?' })
 
@@ -27,7 +28,7 @@ class Omen::ReadingRunTest < ActiveSupport::TestCase
     assert_requested(:post, Omen::Stubs::MESSAGES_URL) { |it| it.body.include? 'And in April' }
     assert_requested(:post, Omen::Stubs::MESSAGES_URL, times: 1) { |it| it.body.include? 'March' }
   ensure
-    Omen.config.remembered = 20
+    Omen.config.remembered = remembered
   end
 
   # The bug the split fixed. An answer is inserted after the API call, so a question asked
