@@ -7,6 +7,12 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+## 0.6.0 - 2026-09-11
+
+* [Feature] Carry only the last turns of a thread into the next question, `Omen.config.remembered`
+  of them, 20 by default. A thread nobody clears was sending its whole history with every
+  question and being charged for it again each time
+
 ## 0.5.0 - 2026-09-11
 
 * [Breaking change] `omen_readings` carries a `type` column, so a host's two kinds of reading

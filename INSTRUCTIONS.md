@@ -121,17 +121,19 @@ writes it with each line commented out, as the list of what there is to say.
 | Setting | Default |
 |---|---|
 | `narrow_role` | `'omen_inquirer'` |
+| `remembered` | `20`, the turns of a thread that travel with the next question |
 | `notes` | none, so the prompt says nothing about this app beyond its schema |
 
 ## What a host builds on top
 
-`Omen::Reading` has a `type` column nowhere, so a subclass is a transparent second name for the
-same rows: `Inquiry.all` carries no type condition, and `to_partial_path` becomes
-`inquiries/inquiry`.
+`omen_readings` carries a `type`, so a subclass is a kind of reading rather than a second name
+for every row: `Inquiry.all` counts inquiries, and a row answers as what it was written as,
+whatever class asks for it. That last part is what keeps a narrowing honest, since what a
+reading may read is the row's own to say.
 
 ```ruby
 class Inquiry < Omen::Reading
-  belongs_to :agent
+  belongs_to :owner, polymorphic: true
 end
 ```
 

@@ -23,6 +23,10 @@ Omen.configure do |config|
   # there are more without counting them.
   # config.maximum_rows = 100
 
+  # How many turns of a thread travel with the next question. A thread nobody clears would
+  # otherwise carry its whole history into each one, and be charged for it again each time.
+  # config.remembered = 20
+
   # Left unset, the Anthropic SDK resolves ANTHROPIC_API_KEY and its own wider chain.
   # config.api_key = Rails.application.credentials.dig :anthropic, :api_key
 

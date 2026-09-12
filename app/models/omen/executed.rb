@@ -24,7 +24,12 @@ private
     execute question.create_answer!(**reply)
   end
 
-  def asked_up_to(question) = questions.where id: ..question.id
+  # The last few turns rather than every one: a thread nobody clears would otherwise carry its
+  # whole history into each question, and be charged for it again each time.
+  def asked_up_to(question)
+    asked = questions.where id: ..question.id
+    asked.where id: asked.reorder(id: :desc).limit(Omen.config.remembered).select(:id)
+  end
 
   def execute(answered)
     return if answered.sql.blank?

@@ -15,6 +15,21 @@ class Omen::ReadingRunTest < ActiveSupport::TestCase
     assert_equal 5, reading.output_usage
   end
 
+  # A thread nobody clears would otherwise carry its whole history into every question.
+  test 'a question carries the turns before it, and only as many as a host remembers' do
+    Omen.config.remembered = 1
+    stub_claude(*Array.new(2) { claude_answers note: 'Which days did you mean?' })
+
+    reading = ask 'How many in March?'
+    reading.ask 'And in April?'
+    perform_enqueued_jobs
+
+    assert_requested(:post, Omen::Stubs::MESSAGES_URL) { |it| it.body.include? 'And in April' }
+    assert_requested(:post, Omen::Stubs::MESSAGES_URL, times: 1) { |it| it.body.include? 'March' }
+  ensure
+    Omen.config.remembered = 20
+  end
+
   # The bug the split fixed. An answer is inserted after the API call, so a question asked
   # during one lands after it, and a run that read the log up front saw an answer last, exited,
   # and left that question unanswered forever -- its own run having found the reading claimed.

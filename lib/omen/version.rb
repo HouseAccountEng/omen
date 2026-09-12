@@ -1,4 +1,4 @@
 module Omen
   # The version of this gem, as RubyGems knows it.
-  VERSION = '0.5.0'
+  VERSION = '0.6.0'
 end

@@ -15,6 +15,9 @@ module Omen
     # How many rows of one answer a page will show.
     attr_accessor :maximum_rows
 
+    # How many turns of a thread travel with the next question.
+    attr_accessor :remembered
+
     # The key the Anthropic API is reached with. Left unset, the SDK resolves one of its own.
     attr_accessor :api_key
 
@@ -26,6 +29,7 @@ module Omen
       @narrow_role = 'omen_inquirer'
       @claude_model = 'claude-opus-5'
       @maximum_rows = 100
+      @remembered = 20
       @schema_path = 'db/schema.rb'
     end
 
