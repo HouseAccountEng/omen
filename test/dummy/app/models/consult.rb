@@ -2,9 +2,9 @@
 class Consult < Omen::Reading
   attribute :provider_id, :integer
 
-  # @return [String] the role granted the columns a provider may read, and nothing else.
-  def runs_as = 'omen_dummy_provider'
-
-  # @return [Hash] whose rows those are, which the policy on each of those tables reads.
-  def settings = { 'omen.provider_id' => provider_id }
+  narrows 'omen_dummy_provider', by: :provider_id,
+    own: { 'providers' => 'id = %{owner}',
+           'bookings' => 'provider_id = %{owner}',
+           'homes' => 'EXISTS (SELECT 1 FROM bookings WHERE bookings.home_id = homes.id)', },
+    whole: %w[ contacts ], except: /\Anotes\z/
 end

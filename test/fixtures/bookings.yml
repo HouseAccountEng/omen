@@ -1,7 +1,9 @@
 fulfilled:
   home: rodeo
+  provider: jobber
   status: fulfilled
 
 quoted:
   home: apartment
+  provider: local
   type: Estimate

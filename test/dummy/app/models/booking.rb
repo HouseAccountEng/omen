@@ -7,6 +7,7 @@ class Booking < ApplicationRecord
   ]
 
   belongs_to :home
+  belongs_to :provider, optional: true
 
   enum :status, Hash[STATUSES.map { |status| [status, status] }]
 end

@@ -14,29 +14,29 @@ module Omen
     UNMADE = 'Could not make %{role}, so every reading will say this app is misconfigured. Ask ' \
              'for that role, NOLOGIN, granted SELECT on every table but %{tables}.'
 
-    # Said per statement, since the grants, the revocations and the functions need nothing from
-    # one another and one refusal should not discard the rest.
+    # Said per group, since the grants, the revocations and the functions need nothing from one
+    # another and one refusal should not discard the rest.
     REFUSED = 'Skipped, refused by the database: %{statement} (%{error})'
 
     # Said where a role that already existed is one a reading should not be able to reach through.
     DANGEROUS = '%{role} holds %{held}. This gem cannot take that away without being a superuser ' \
                 'itself, so ask for it to be taken away.'
 
-    # Creates the role and the function, on every database this environment prepares.
+    # Creates the role and the functions, and writes every narrowing a host declared, on every
+    # database this environment prepares.
     # @return [void]
-    def self.grant
-      environments.each do |environment|
-        config = ActiveRecord::Base.configurations.configs_for env_name: environment,
-          name: 'primary'
-        next unless config
-        ActiveRecord::Tasks::DatabaseTasks.with_temporary_connection config do |connection|
-          grant_on connection
+    def self.grant = Omen.each_database { |connection| grant_on connection }
+
+    # Takes every narrowing back off, leaving each table read the way it was read before one.
+    # @return [void]
+    def self.widen
+      Omen.each_database do |connection|
+        Omen::Reading.narrowings.each do |narrowing|
+          narrowing.widening(connection).each { |group| attempted connection, *group }
+          puts "Widened #{connection.current_database} back out of #{narrowing.role}"
         end
       end
     end
-
-    # @return [Array<String>] the environments whose databases this run should cover.
-    def self.environments = Rails.env.development? ? %w[ development test ] : [Rails.env.to_s]
 
     # Warns rather than raises: a managed database never grants CREATEROLE, and a deploy that
     # cannot make the role must still finish, having said what has to be made by hand.
@@ -54,18 +54,34 @@ module Omen
       held = Attributes.dangerous connection
       warn DANGEROUS % { role: role, held: held.to_sentence } if held.any?
       puts "Granted SELECT on #{connection.current_database} to #{role}"
+      narrow connection, members
     end
 
-    # One statement at a time, so a database that refuses one still runs the others -- and each
-    # inside a savepoint of its own, since a refusal inside a transaction refuses everything
-    # after it too, and this task is as likely to be run from a console as from a deploy.
+    # Every audience a host declared, written into the database its readings are answered from.
     # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
-    # @param statement [String] one of the statements Omen::Grants builds.
+    # @param members [Array<String>] the roles that may enter a narrowed one.
     # @return [void]
-    def self.attempted(connection, statement)
-      connection.transaction(requires_new: true) { connection.execute statement }
+    def self.narrow(connection, members)
+      Omen::Reading.narrowings.each do |narrowing|
+        narrowing.statements(connection, members).each { |group| attempted connection, *group }
+        puts "Narrowed #{narrowing.role} to the rows #{narrowing.setting} names"
+      end
+    end
+
+    # A group at a time, so a database that refuses one still runs the others -- and each inside
+    # a savepoint of its own, since a refusal inside a transaction refuses everything after it
+    # too, and this task is as likely to be run from a console as from a deploy. What arrives
+    # together is applied together: a table is never left with row level security on and no
+    # policy under it.
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param statements [Array<String>] what Omen::Grants or a narrowing built.
+    # @return [void]
+    def self.attempted(connection, *statements)
+      connection.transaction(requires_new: true) do
+        statements.each { |statement| connection.execute statement }
+      end
     rescue ActiveRecord::StatementInvalid => error
-      warn REFUSED % { statement: statement.squish, error: error.message.lines.first.strip }
+      warn REFUSED % { statement: statements.first.squish, error: error.message.lines.first.strip }
     end
 
     # Discovered rather than named: SET LOCAL ROLE needs the connecting role to be a member of

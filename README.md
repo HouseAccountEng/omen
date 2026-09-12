@@ -57,36 +57,48 @@ keep or replace.
 ## Narrowing a reading to one owner's rows
 
 A reading answers with whatever its role may read, so an app that lets a customer ask about
-their own data narrows the role rather than the prompt:
-
-```sql
-CREATE ROLE provider_inquirer NOLOGIN;
-GRANT USAGE ON SCHEMA public TO provider_inquirer;
-GRANT SELECT (id, name) ON providers TO provider_inquirer; -- never the whole row
-ALTER TABLE providers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY provider_inquirer ON providers FOR SELECT TO provider_inquirer
-  USING (id = NULLIF(current_setting('omen.provider_id', true), '')::bigint);
-```
+their own data says so on the reading, and `db:omen:grant` writes it into the database:
 
 ```ruby
 class Consult < Omen::Reading
   belongs_to :provider
 
-  def runs_as = 'provider_inquirer'
-  def settings = { 'omen.provider_id' => provider_id }
+  narrows 'provider_inquirer', by: :provider_id,
+    own: {
+      'bookings' => 'provider_id = %{owner}',
+      'locations' => 'EXISTS (SELECT 1 FROM bookings WHERE bookings.location_id = locations.id)',
+    },
+    whole: %w[ states zips ], except: /_count\z/
+
   def notes = Rails.root.join('config/provider_notes.md').read
 end
 ```
 
-Both are set for the statement and gone with it: `SET LOCAL` inside the transaction the
-statement runs in. What that buys is that it does not matter what SQL Claude writes -- a join, a
-`WITH`, a `UNION`, a subquery on a table it was never shown -- every path resolves through the
-policy, and rows outside it do not exist for that role. The schema Claude is shown narrows with
-the grants, so it is never told about a table or a column it would be refused.
+`own` is every table it reads rows of, and what makes a row its own -- `%{owner}` stands for
+whoever the reading names, and a table reaching through another needs no owner of its own, since
+the policy on the table it reaches through has already run. `whole` is read entire, because
+nothing in those tables is anybody's; `except` is the columns of those it may not read, a counter
+over everybody being the case it exists for. A credential is refused everywhere, by name, without
+being asked for.
 
-`NULLIF` is not decoration: a reading that names nobody sets the empty string, and a policy
-reading it straight would raise rather than answer nothing. Write the policy so that no owner
-means no rows.
+What that buys is that it does not matter what SQL Claude writes -- a join, a `WITH`, a `UNION`,
+a subquery on a table it was never shown -- every path resolves through the policy, and rows
+outside it do not exist for that role. The reading's own row says who it is: the setting is `SET
+LOCAL` inside the transaction the statement runs in, and gone with it. A reading that names
+nobody reads nothing.
+
+### What it does not take away
+
+Row level security binds every role but a table's owner, so turning it on could empty a table for
+everybody else. It does not: each table gets a permissive policy for everybody beside the
+`RESTRICTIVE` one for the narrowed role, which is ANDed with it and applies to nobody else -- a
+role created afterwards included. The membership that lets a role enter the narrowed one is
+granted `WITH INHERIT FALSE` (Postgres 16 and later) so that entering it is not the same as being
+held back by it.
+
+`db:omen:narrowed` says which roles each restrictive policy really holds back, membership and all,
+and exits non-zero on one nobody asked for -- worth running in CI, since an over-narrowed role
+reads empty rather than raising. `db:omen:widen` takes it all back off.
 
 ## Everything else
 

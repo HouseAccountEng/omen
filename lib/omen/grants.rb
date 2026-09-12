@@ -3,6 +3,12 @@ module Omen
   # may read, and what it may not. Kept apart from the task that runs them, which is about a
   # database it has to find and a refusal it has to survive rather than about privileges.
   module Grants
+    # Membership without inheritance, so a role that enters a narrowed one with SET LOCAL ROLE
+    # is not itself held back by its policies. Postgres 16 and later; below that the grant is
+    # refused and the task says so, which leaves a reading misconfigured rather than narrowing
+    # somebody nobody meant to narrow.
+    APART = 'GRANT %{role} TO %{member} WITH INHERIT FALSE'
+
     # DDL, which Active Record has no expression for, and not a query.
     # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
     # @param members [Array<String>] the roles that may SET LOCAL ROLE to this one. The owner
@@ -12,19 +18,64 @@ module Omen
     def self.statements(connection, members)
       role = connection.quote_table_name Omen.config.narrow_role
       [
-        'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = ' \
-          "#{connection.quote Omen.config.narrow_role}) THEN CREATE ROLE #{role} NOLOGIN; " \
-          'END IF; END $$',
-        "ALTER ROLE #{role} WITH #{Attributes::SETTABLE}",
+        *made(connection, Omen.config.narrow_role),
+        *members.map { |member| "GRANT #{role} TO #{connection.quote_table_name member}" },
         "GRANT USAGE ON SCHEMA public TO #{role}",
         "GRANT SELECT ON ALL TABLES IN SCHEMA public TO #{role}",
         "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO #{role}",
-        *members.map { |member| "GRANT #{role} TO #{connection.quote_table_name member}" },
         *revoked(connection, role),
         *Omen::Renamed.statements,
         *Omen::TimeZone.statements(connection),
         *Omen::Distance.statements(connection),
       ]
+    end
+
+    # The same role, made for one audience rather than for every table: it is granted nothing
+    # here, since a narrowing names the tables and the columns of each itself.
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param name [String] the role to make.
+    # @param members [Array<String>] the roles that may enter it, none of them inheriting it.
+    # @return [Array<String>] the statements to run, in order.
+    def self.narrowed(connection, name, members)
+      role = connection.quote_table_name name
+      [
+        *made(connection, name),
+        *members.map { |member| apart role, connection.quote_table_name(member) },
+        "GRANT USAGE ON SCHEMA public TO #{role}",
+      ]
+    end
+
+    # @param role [String] the role, quoted.
+    # @param member [String] the role that may enter it, quoted.
+    # @return [String] the statement that lets it in without handing it what the role holds.
+    def self.apart(role, member) = APART % { role: role, member: member }
+
+    # Named one by one rather than granted whole: a column added to hold a secret, or to count
+    # what belongs to everybody, is one a role has to be given before it can read it. Taken away
+    # first, since a grant only ever adds: without the revoke, a column dropped from the list
+    # stays readable by whoever was granted it the last time this ran.
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param name [String] the role to grant them to.
+    # @param table [String] the table whose columns are being granted.
+    # @param refused [Regexp] the columns of it that role may not read.
+    # @return [Array<String>] what it may read of that table, said over again.
+    def self.granted(connection, name, table, refused)
+      role = connection.quote_table_name name
+      quoted = connection.quote_table_name table
+      columns = connection.columns(table).map(&:name).grep_v(refused)
+        .map { |column| connection.quote_column_name column }
+      [ "REVOKE ALL ON #{quoted} FROM #{role}",
+        "GRANT SELECT (#{columns.join ', '}) ON #{quoted} TO #{role}", ]
+    end
+
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param name [String] the role to make, where the database has not got it.
+    # @return [Array<String>] the statements that make it and say what it may be.
+    def self.made(connection, name)
+      role = connection.quote_table_name name
+      [ 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = ' \
+          "#{connection.quote name}) THEN CREATE ROLE #{role} NOLOGIN; END IF; END $$",
+        "ALTER ROLE #{role} WITH #{Attributes::SETTABLE}", ]
     end
 
     # Intersected, so a bare db:create with no table yet to revoke on is not a failure.

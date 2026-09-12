@@ -22,10 +22,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_120002) do
   create_table "bookings", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "home_id", null: false
+    t.bigint "provider_id"
     t.enum "status", default: "draft", null: false, enum_type: "booking_status"
     t.string "type"
     t.datetime "updated_at", null: false
     t.index ["home_id"], name: "index_bookings_on_home_id"
+    t.index ["provider_id"], name: "index_bookings_on_provider_id"
   end
 
   create_table "contacts", force: :cascade do |t|
@@ -90,6 +92,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_120002) do
   end
 
   add_foreign_key "bookings", "homes"
+  add_foreign_key "bookings", "providers"
   add_foreign_key "homes", "contacts"
   add_foreign_key "omen_answers", "omen_questions", column: "question_id"
   add_foreign_key "omen_questions", "omen_readings", column: "reading_id"
