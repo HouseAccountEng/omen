@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 For more information about changelogs, check [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
-## [Unreleased]
+## 0.7.0 - 2026-09-12
 
 * [Bugfix] Keep the columns of an answer in the order the statement asked for them. They were
   held as `jsonb`, which sorts a row's keys by length, so a page drew them scrambled
