@@ -7,6 +7,9 @@ For more information about changelogs, check [Keep a Changelog](http://keepachan
 
 ## [Unreleased]
 
+* [Bugfix] Keep the columns of an answer in the order the statement asked for them. They were
+  held as `jsonb`, which sorts a row's keys by length, so a page drew them scrambled
+
 * [Breaking change] Carry five turns of a thread rather than twenty, which is what a question
   usually leans on and what a thread nobody clears can afford to send again every time
 

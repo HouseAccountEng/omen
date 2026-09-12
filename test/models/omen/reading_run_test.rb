@@ -15,6 +15,17 @@ class Omen::ReadingRunTest < ActiveSupport::TestCase
     assert_equal 5, reading.output_usage
   end
 
+  # A `jsonb` column sorts a row's keys by length, which hands a page a scrambled answer: the
+  # order Claude selected the columns in is the order they are meant to be read in.
+  test 'the columns of an answer come back in the order the statement asked for them' do
+    stub_claude claude_answers(sql: 'SELECT city, id AS number, street FROM homes LIMIT 1',
+                               note: 'One home.')
+
+    reading = ask 'Where is one of the homes?'
+
+    assert_equal %w[ city number street ], answer(reading).result.sole.keys
+  end
+
   # A thread nobody clears would otherwise carry its whole history into every question.
   test 'a question carries the turns before it, and only as many as a host remembers' do
     remembered = Omen.config.remembered

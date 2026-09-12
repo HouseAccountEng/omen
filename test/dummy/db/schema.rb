@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_12_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_12_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -60,7 +60,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_000000) do
     t.integer "output_usage", default: 0, null: false
     t.jsonb "provenance", default: {}, null: false
     t.bigint "question_id", null: false
-    t.jsonb "result", default: [], null: false
+    t.json "result", default: [], null: false
     t.string "stop_reason"
     t.datetime "updated_at", null: false
     t.index ["question_id"], name: "index_omen_answers_on_question_id", unique: true
@@ -80,8 +80,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_12_000000) do
     t.integer "output_usage", default: 0, null: false
     t.integer "questions_count", default: 0, null: false
     t.enum "status", default: "unstarted", null: false, enum_type: "omen_status"
-    t.datetime "updated_at", null: false
     t.string "type"
+    t.datetime "updated_at", null: false
     t.index ["type"], name: "index_omen_readings_on_type"
   end
 
