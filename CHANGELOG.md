@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 For more information about changelogs, check [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
-## [Unreleased]
+## 0.8.0 - 2026-09-16
 
 * [Feature] Make how a Postgres role is made safely public, so a host builds the read-only role
   Omen requires with the care Omen builds its own: `Omen::Grants.made` takes `login:`,
