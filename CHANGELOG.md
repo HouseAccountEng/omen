@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 For more information about changelogs, check [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
+## [Unreleased]
+
+* [Feature] Make how a Postgres role is made safely public, so a host builds the read-only role
+  Omen requires with the care Omen builds its own: `Omen::Grants.made` takes `login:`,
+  `Omen::Attributes.dangerous` and `.settable` take the role they are about, and `Omen.attempted`
+  and `Omen.each_database` are the two a host's rake task calls. A host had to hand-write all of
+  it, and the copy in Fountain asserted `NOSUPERUSER` -- which only a superuser may say, so the
+  grant died at its second statement, warned, and left the deploy green for a year
+
+* [Breaking change] `Omen::Attributes.exists?`, `.held` and `.dangerous` take the role to ask
+  about rather than reading `Omen.config.narrow_role`, since a host asks about its own
+
+* [Breaking change] `Omen::Attributes::SETTABLE` no longer carries `NOLOGIN`, which is now the
+  default of `Omen::Attributes.settable login:` -- a role a host connects as needs `LOGIN`
+
+* [Breaking change] `Omen::Inquirer.attempted` is `Omen.attempted` and `Omen::Inquirer::REFUSED`
+  is `Omen::REFUSED`. Neither was ever about the inquirer, and a host calling `Omen::Inquirer`
+  to build its reader read as though the two roles were one
+
 ## 0.7.0 - 2026-09-12
 
 * [Bugfix] Keep the columns of an answer in the order the statement asked for them. They were

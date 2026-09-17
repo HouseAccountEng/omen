@@ -70,12 +70,14 @@ module Omen
 
     # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
     # @param name [String] the role to make, where the database has not got it.
+    # @param login [Boolean] whether anything connects as it, as a host's reading role does.
     # @return [Array<String>] the statements that make it and say what it may be.
-    def self.made(connection, name)
+    def self.made(connection, name, login: false)
       role = connection.quote_table_name name
+      entered = login ? 'LOGIN' : 'NOLOGIN'
       [ 'DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = ' \
-          "#{connection.quote name}) THEN CREATE ROLE #{role} NOLOGIN; END IF; END $$",
-        "ALTER ROLE #{role} WITH #{Attributes::SETTABLE}", ]
+          "#{connection.quote name}) THEN CREATE ROLE #{role} #{entered}; END IF; END $$",
+        "ALTER ROLE #{role} WITH #{Attributes.settable login: login}", ]
     end
 
     # Intersected, so a bare db:create with no table yet to revoke on is not a failure.

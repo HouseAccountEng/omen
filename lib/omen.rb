@@ -27,8 +27,26 @@ module Omen
   # @return [void]
   def self.configure = yield config
 
+  # Said where a database refuses one group, since the groups need nothing from one another.
+  REFUSED = 'Skipped, refused by the database: %{statement} (%{error})'
+
   # @return [Array<String>] the environments whose databases a grant should cover.
   def self.environments = Rails.env.development? ? %w[ development test ] : [Rails.env.to_s]
+
+  # A savepoint each and a warning rather than a raise, so a statement a managed database
+  # refuses discards neither the deploy nor the statements behind it -- and what arrives
+  # together is applied together, since a table is never left with row level security on and
+  # no policy under it.
+  # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+  # @param statements [Array<String>] what to run, all of it or none of it.
+  # @return [void]
+  def self.attempted(connection, *statements)
+    connection.transaction(requires_new: true) do
+      statements.each { |statement| connection.execute statement }
+    end
+  rescue ActiveRecord::StatementInvalid => error
+    warn REFUSED % { statement: statements.first.squish, error: error.message.lines.first.strip }
+  end
 
   # @yield [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing connection to each
   #   database this environment prepares.

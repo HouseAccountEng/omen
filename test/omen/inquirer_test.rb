@@ -15,7 +15,7 @@ class Omen::InquirerTest < ActiveSupport::TestCase
       end
       assert_includes said, 'GRANT "omen_inquirer" TO "somebody"'
       assert_includes said, 'ALTER ROLE "omen_inquirer" WITH ' \
-                            "#{Omen::Attributes::SETTABLE}"
+                            "#{Omen::Attributes.settable}"
       assert(said.any? { |statement| statement.include? Omen::TimeZone::ZONE })
     end
   end
@@ -27,8 +27,8 @@ class Omen::InquirerTest < ActiveSupport::TestCase
   test 'a statement the database refuses does not discard the ones after it' do
     ApplicationRecord.with_connection do |connection|
       said = capture_io do
-        Omen::Inquirer.attempted connection, 'SELECT 1 FROM a_table_nobody_made'
-        Omen::Inquirer.attempted connection, 'CREATE TEMPORARY TABLE omen_probe (id int)'
+        Omen.attempted connection, 'SELECT 1 FROM a_table_nobody_made'
+        Omen.attempted connection, 'CREATE TEMPORARY TABLE omen_probe (id int)'
       end
 
       assert_match(/Skipped, refused by the database/, said.last)

@@ -14,10 +14,6 @@ module Omen
     UNMADE = 'Could not make %{role}, so every reading will say this app is misconfigured. Ask ' \
              'for that role, NOLOGIN, granted SELECT on every table but %{tables}.'
 
-    # Said per group, since the grants, the revocations and the functions need nothing from one
-    # another and one refusal should not discard the rest.
-    REFUSED = 'Skipped, refused by the database: %{statement} (%{error})'
-
     # Said where a role that already existed is one a reading should not be able to reach through.
     DANGEROUS = '%{role} holds %{held}. This gem cannot take that away without being a superuser ' \
                 'itself, so ask for it to be taken away.'
@@ -32,7 +28,7 @@ module Omen
     def self.widen
       Omen.each_database do |connection|
         Omen::Reading.narrowings.each do |narrowing|
-          narrowing.widening(connection).each { |group| attempted connection, *group }
+          narrowing.widening(connection).each { |group| Omen.attempted connection, *group }
           puts "Widened #{connection.current_database} back out of #{narrowing.role}"
         end
       end
@@ -46,12 +42,12 @@ module Omen
       read_by = reader
       warn UNGRANTED % { role: Omen.config.reading_role } unless read_by
       members = [ read_by, connection.select_value(WHOEVER) ].compact
-      Grants.statements(connection, members).each { |statement| attempted connection, statement }
+      Grants.statements(connection, members).each { |it| Omen.attempted connection, it }
       role = Omen.config.narrow_role
       return warn UNMADE % { role: role, tables: Omen.tables.to_sentence } unless
-        Attributes.exists? connection
+        Attributes.exists? connection, role
 
-      held = Attributes.dangerous connection
+      held = Attributes.dangerous connection, role
       warn DANGEROUS % { role: role, held: held.to_sentence } if held.any?
       puts "Granted SELECT on #{connection.current_database} to #{role}"
       narrow connection, members
@@ -63,25 +59,9 @@ module Omen
     # @return [void]
     def self.narrow(connection, members)
       Omen::Reading.narrowings.each do |narrowing|
-        narrowing.statements(connection, members).each { |group| attempted connection, *group }
+        narrowing.statements(connection, members).each { |group| Omen.attempted connection, *group }
         puts "Narrowed #{narrowing.role} to the rows #{narrowing.setting} names"
       end
-    end
-
-    # A group at a time, so a database that refuses one still runs the others -- and each inside
-    # a savepoint of its own, since a refusal inside a transaction refuses everything after it
-    # too, and this task is as likely to be run from a console as from a deploy. What arrives
-    # together is applied together: a table is never left with row level security on and no
-    # policy under it.
-    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
-    # @param statements [Array<String>] what Omen::Grants or a narrowing built.
-    # @return [void]
-    def self.attempted(connection, *statements)
-      connection.transaction(requires_new: true) do
-        statements.each { |statement| connection.execute statement }
-      end
-    rescue ActiveRecord::StatementInvalid => error
-      warn REFUSED % { statement: statements.first.squish, error: error.message.lines.first.strip }
     end
 
     # Discovered rather than named: SET LOCAL ROLE needs the connecting role to be a member of

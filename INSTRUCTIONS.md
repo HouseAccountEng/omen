@@ -104,8 +104,10 @@ end
 - **A read-only connection role.** `connects_to database: { writing: :primary, reading: :reader }`
   on the record class, with the `reading` entry logging in as a Postgres role granted `SELECT`
   and nothing else. Omen raises rather than falling back to a role that could write, which is
-  the point. Creating that role is the app's own business — Omen has no name for it, and
-  discovers it when granting.
+  the point. Naming that role is the app's own business — Omen has none for it, and discovers
+  it when granting — but making one is not, since a managed database refuses half the DDL it
+  takes. `Omen::Grants.made`, `Omen::Attributes.dangerous`, `Omen.attempted` and
+  `Omen.each_database` are public for that, and the README shows the task they add up to.
 - **Active Record Encryption keys.** Without them an encrypted column reads back as the
   placeholder rather than as the value, quietly.
 - **An `ApplicationJob`.** A reading is answered outside the request, and the job descends

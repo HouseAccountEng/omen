@@ -1,36 +1,21 @@
 # Creates the Postgres role a read-only request logs in as. Omen has no name for this role and
-# no business creating it, so a host does it -- and this app is the host Omen is tested in.
+# no business creating it, so a host does it -- and this app is the host Omen is tested in. How
+# to make one safely is the gem's, which is what everything below leans on.
 module Reader
   # The role the 'reader' entry of config/database.yml connects as.
   ROLE = 'omen_dummy_reader'
 
-  # What a read-only role may never be: a superuser bypasses GRANT outright.
-  ATTRIBUTES = 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOREPLICATION'
-
   # Grants on every database this environment prepares.
   # @return [void]
-  def self.grant
-    environments.each do |environment|
-      config = ActiveRecord::Base.configurations.configs_for env_name: environment,
-        name: 'primary'
-      next unless config
-      ActiveRecord::Tasks::DatabaseTasks.with_temporary_connection config do |connection|
-        grant_on connection
-      end
-    end
-  end
+  def self.grant = Omen.each_database { |connection| grant_on connection }
 
-  # @return [Array<String>] the environments whose databases this run should cover.
-  def self.environments = Rails.env.development? ? %w[ development test ] : [Rails.env.to_s]
-
-  # Warns rather than raises, so a database that forbids CREATE ROLE still prepares.
   # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
   # @return [void]
   def self.grant_on(connection)
-    statements(connection).each { |statement| connection.execute statement }
+    statements(connection).each { |statement| Omen.attempted connection, statement }
+    held = Omen::Attributes.dangerous connection, ROLE
+    warn "#{ROLE} holds #{held.to_sentence}, so ask for it to be taken away" if held.any?
     puts "Granted SELECT on #{connection.current_database} to #{ROLE}"
-  rescue ActiveRecord::StatementInvalid => error
-    warn "Could not grant to #{ROLE}, so a read-only request will fail: #{error.message}"
   end
 
   # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
@@ -38,10 +23,8 @@ module Reader
   def self.statements(connection)
     role = connection.quote_table_name ROLE
     database = connection.quote_table_name connection.current_database
-    [
-      "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = #{connection.quote ROLE}) " \
-        "THEN CREATE ROLE #{role} LOGIN; END IF; END $$",
-      "ALTER ROLE #{role} WITH LOGIN #{ATTRIBUTES} PASSWORD 'reader'",
+    Omen::Grants.made(connection, ROLE, login: true) + [
+      "ALTER ROLE #{role} WITH PASSWORD 'reader'",
       "ALTER ROLE #{role} SET default_transaction_read_only = on",
       "GRANT CONNECT ON DATABASE #{database} TO #{role}",
       "GRANT USAGE ON SCHEMA public TO #{role}",

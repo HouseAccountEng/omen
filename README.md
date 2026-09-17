@@ -41,6 +41,32 @@ None of it is Omen's to create, and each is checked rather than assumed:
 - **A read-only connection role**: `connects_to database: { writing: :primary, reading: :reader }`
   on `ApplicationRecord`, where `reader` logs in as a Postgres role granted `SELECT` and nothing
   else. Omen raises rather than falling back to a role that could write, which is the point.
+  Naming that role is yours; making one safely is not, since a managed database refuses half the
+  DDL it takes — so `Omen::Grants.made`, `Omen::Attributes.dangerous`, `Omen.attempted` and
+  `Omen.each_database` are public, and a host's own task is the grants it wants and little else:
+
+      module Reader
+        ROLE = 'your_app_reader'
+
+        def self.grant = Omen.each_database { |connection| grant_on connection }
+
+        def self.grant_on(connection)
+          statements(connection).each { |it| Omen.attempted connection, it }
+          held = Omen::Attributes.dangerous connection, ROLE
+          warn "#{ROLE} holds #{held.to_sentence}" if held.any?
+        end
+
+        def self.statements(connection)
+          role = connection.quote_table_name ROLE
+          Omen::Grants.made(connection, ROLE, login: true) +
+            [ "GRANT SELECT ON ALL TABLES IN SCHEMA public TO #{role}", ... ]
+        end
+      end
+
+  `Omen.attempted` runs each statement in a savepoint and warns rather than raising, so one
+  refusal discards neither the deploy nor the statements behind it. `Omen::Grants.made` asserts
+  only what whoever may create a role may set: saying `NOSUPERUSER` needs the `SUPERUSER`
+  attribute, so it is read back with `Omen::Attributes.dangerous` and warned about instead.
 - **`ANTHROPIC_API_KEY`**, or a key named in the initializer.
 - **Active Record Encryption keys**, without which an encrypted column reads back as a
   placeholder rather than as its value, quietly.
