@@ -30,8 +30,10 @@ module Omen
       ]
     end
 
-    # The same role, made for one audience rather than for every table: it is granted nothing
-    # here, since a narrowing names the tables and the columns of each itself.
+    # Who may enter the role, and the schema it reads in. Kept apart from making the role: a
+    # managed database refuses to make one at all, and a refusal takes its whole transaction
+    # with it -- so membership granted in the same breath would be lost to a role that was
+    # already there and only needed letting into.
     # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
     # @param name [String] the role to make.
     # @param members [Array<String>] the roles that may enter it, none of them inheriting it.
@@ -39,7 +41,6 @@ module Omen
     def self.narrowed(connection, name, members)
       role = connection.quote_table_name name
       [
-        *made(connection, name),
         *members.map { |member| apart role, connection.quote_table_name(member) },
         "GRANT USAGE ON SCHEMA public TO #{role}",
       ]

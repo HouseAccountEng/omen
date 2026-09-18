@@ -13,6 +13,9 @@ class Omen::ReadingRunTest < ActiveSupport::TestCase
     assert_equal 2, answer(reading).result.sole['homes']
     assert_equal 10, reading.input_usage
     assert_equal 5, reading.output_usage
+    # And the answer landing is what marks the reading as having something new to say, rather
+    # than the status the run happens to change around it: a page watching one refreshes on it.
+    assert_operator answer(reading).question.reading.updated_at, :>=, answer(reading).updated_at
   end
 
   # A `jsonb` column sorts a row's keys by length, which hands a page a scrambled answer: the

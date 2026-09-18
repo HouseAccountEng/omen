@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 For more information about changelogs, check [Keep a Changelog](http://keepachangelog.com) and
 [Vandamme](http://tech-angels.github.io/vandamme).
 
+## 0.9.0 - 2026-09-18
+
+* [Fix] An answer landing touches the reading it belongs to, so a page watching one refreshes
+  on the answer rather than on whichever status change the run happens to make around it. A
+  question already touched its reading, which is why a question appeared and its answer did not.
+* [Fix] Making an audience's role and letting members into it are two transactions, not one.
+  A managed database refuses to make a role at all, and a refusal takes its whole transaction
+  with it -- so the membership a role already there only needed was rolled back with the
+  refusal, and every statement run as it went on saying the app was misconfigured.
+* [Change] An audience whose Postgres role could not be made says so once and narrows nothing,
+  rather than failing table by table and then reporting the audience narrowed. A managed
+  database refuses `CREATE ROLE` to the app's own user, and the refusal used to arrive as a
+  screenful of `role does not exist` followed by a success line.
+
 ## 0.8.0 - 2026-09-16
 
 * [Feature] Make how a Postgres role is made safely public, so a host builds the read-only role

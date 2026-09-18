@@ -48,6 +48,20 @@ class Omen::InquirerTest < ActiveSupport::TestCase
     Omen.config.narrow_role = 'omen_inquirer'
   end
 
+  # What a managed database does: the app's own user may not create a role, and every table
+  # of the narrowing then fails for the same reason. One message, and nothing claimed narrowed.
+  test 'an audience whose role cannot be made says so once, not once per table' do
+    narrowing = Omen::Narrowing.new role: 'pg_reserved_for_postgres', by: :owner_id,
+      own: { 'homes' => 'id = %{owner}' }
+
+    said = on_its_own_connection do |connection|
+      capture_io { Omen::Inquirer.narrowed connection, narrowing, %w[ somebody ] }
+    end
+
+    assert_match(/Could not make pg_reserved_for_postgres/, said.last)
+    assert_no_match(/Narrowed/, said.first)
+  end
+
   # Installation step one leaves a host with no reading role declared, and that is a message
   # rather than a failure: nothing reads through the narrow role until there is one.
   test 'the user a host reads through is discovered, and says so where there is none yet' do

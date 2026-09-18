@@ -37,7 +37,8 @@ module Omen
     # @return [Array<Array<String>>] the statements, grouped: what arrives together is applied
     #   together, so no table is left with row level security on and no policy under it.
     def statements(connection, members)
-      [ Grants.narrowed(connection, @role, members),
+      [ Grants.made(connection, @role),
+        Grants.narrowed(connection, @role, members),
         *@whole.map { |table| granted connection, table },
         *@own.map { |table, own| narrowed connection, table, own }, ]
     end

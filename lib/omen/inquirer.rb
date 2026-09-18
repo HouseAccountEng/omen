@@ -14,6 +14,13 @@ module Omen
     UNMADE = 'Could not make %{role}, so every reading will say this app is misconfigured. Ask ' \
              'for that role, NOLOGIN, granted SELECT on every table but %{tables}.'
 
+    # Said where an audience's own role could not be made. Its tables are then granted to
+    # nobody and no policy stands over them, so every reading of that audience says the app is
+    # misconfigured -- and every statement after the refusal fails for the same reason, which
+    # is one message worth saying and a screenful worth not.
+    UNNARROWED = 'Could not make %{role}, so nothing was narrowed to it and every reading of ' \
+                 'that audience will say this app is misconfigured. Ask for that role, NOLOGIN.'
+
     # Said where a role that already existed is one a reading should not be able to reach through.
     DANGEROUS = '%{role} holds %{held}. This gem cannot take that away without being a superuser ' \
                 'itself, so ask for it to be taken away.'
@@ -58,10 +65,24 @@ module Omen
     # @param members [Array<String>] the roles that may enter a narrowed one.
     # @return [void]
     def self.narrow(connection, members)
-      Omen::Reading.narrowings.each do |narrowing|
-        narrowing.statements(connection, members).each { |group| Omen.attempted connection, *group }
-        puts "Narrowed #{narrowing.role} to the rows #{narrowing.setting} names"
-      end
+      Omen::Reading.narrowings.each { |narrowing| narrowed connection, narrowing, members }
+    end
+
+    # One audience: its role made first and asked for straight after, since everything else
+    # here names that role and a database that would not make it refuses the lot. Nothing is
+    # said to have been narrowed where nothing was.
+    # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter] a writing one.
+    # @param narrowing [Omen::Narrowing] the audience to write.
+    # @param members [Array<String>] the roles that may enter its role.
+    # @return [void]
+    def self.narrowed(connection, narrowing, members)
+      making, *holding = narrowing.statements(connection, members)
+      Omen.attempted connection, *making
+      return warn UNNARROWED % { role: narrowing.role } unless
+        Attributes.exists? connection, narrowing.role
+
+      holding.each { |group| Omen.attempted connection, *group }
+      puts "Narrowed #{narrowing.role} to the rows #{narrowing.setting} names"
     end
 
     # Discovered rather than named: SET LOCAL ROLE needs the connecting role to be a member of

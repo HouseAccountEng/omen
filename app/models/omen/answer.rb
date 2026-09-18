@@ -5,7 +5,10 @@ class Omen::Answer < Omen.config.record
   # A \uXXXX escape that outlived JSON.parse, because Claude escaped the backslash of its own.
   UNICODE_ESCAPE = /\\u([0-9a-fA-F]{4})/
 
-  belongs_to :question
+  # Touched, so that a reading whose answer has just landed says so: the reading is what
+  # broadcasts, and the row it broadcasts for is this one. Without it a page waits on the
+  # status the run happens to change around the answer rather than on the answer itself.
+  belongs_to :question, touch: true
 
   # @return [String] the side of the conversation this was said on, in the words the API uses.
   def role = 'assistant'
